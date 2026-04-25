@@ -1,25 +1,36 @@
 # Vision Board ✨
 
-A personal vision board web app built with Flutter Web. Images and text cards are scattered across the screen in a collage style — like pinning photos to a real board.
+A personal vision board web app built with Flutter Web. Images and text cards are scattered across the screen in a collage style — fully interactive and persistent.
 
 Built as a side project to learn Flutter, coming from a Python/AI background.
 
 ---
 
-## Preview
-
-Dark, luxe aesthetic with polaroid-style photo cards and torn paper text cards arranged freely on screen.
-
----
-
 ## Features
 
+### Board
 - Polaroid-style photo cards with random sizes and rotations
-- 4 text card styles: torn paper, heavily torn, notebook paper, text-only
+- 6 text card styles: Torn, Ripped, Notebook, Float, Stamp, Script
 - Center-pinned focal image
 - Overlap-prevention algorithm for natural collage layout
-- Google Fonts (Playfair Display)
+- Google Fonts (Playfair Display, Dancing Script)
 - Single screen — no scrolling
+
+### Editing
+- **Drag** any card to reposition
+- **Tap** to select — shows edit handles
+- **Double tap** text cards to edit content, style, and color
+- **Resize** cards by dragging the bottom-right handle
+- **Rotate** cards by dragging the bottom-left handle
+- **Layer** cards forward/backward with top-left arrows
+- **Delete** cards with the top-right red button
+- **Upload** images from your computer
+- **Add** custom text cards with live preview
+- **Reset** board to original state
+
+### Persistence
+- Board state saved to browser localStorage via `shared_preferences`
+- Uploaded images encoded as base64 and persisted across sessions
 
 ---
 
@@ -27,23 +38,18 @@ Dark, luxe aesthetic with polaroid-style photo cards and torn paper text cards a
 
 - Flutter Web
 - Dart
-- Google Fonts (`google_fonts`)
-- CustomPainter for torn paper effect
+- `google_fonts`
+- `shared_preferences`
+- `file_picker`
+- `CustomPainter` for torn paper effects
 
 ---
 
 ## Getting Started
 
-### Prerequisites
-
-- Flutter SDK
-- Chrome browser
-
-### Run locally
-
 ```bash
-git clone https://github.com/YOUR_USERNAME/vision_board.git
-cd vision_board
+git clone https://github.com/YOUR_USERNAME/Vision-Board-.git
+cd Vision-Board-
 flutter pub get
 flutter run -d chrome
 ```
@@ -53,9 +59,9 @@ flutter run -d chrome
 ## Project Structure
 
 ```
-vision_board/
+Vision-Board-/
 ├── lib/
-│   └── main.dart         # All UI logic
+│   └── main.dart         # All UI and logic
 ├── imgs/                 # Vision board images (not tracked in git)
 ├── pubspec.yaml
 └── README.md
@@ -65,34 +71,31 @@ vision_board/
 
 ## Roadmap
 
-### v1.0 — Current
+### v1.0 — Done
 - [x] Collage layout with overlap prevention
 - [x] Polaroid photo cards
-- [x] Torn paper text cards (4 styles)
+- [x] Torn paper text cards (6 styles)
 - [x] Center-pinned focal image
 
-### v1.1 — Persistence
-- [ ] Save board state with `shared_preferences`
-- [ ] Board persists after browser refresh
+### v1.1 — Done
+- [x] Save board state with `shared_preferences`
+- [x] Upload images from computer (`file_picker`)
+- [x] Add / edit / delete text cards
+- [x] Drag to reposition cards
+- [x] Resize cards
+- [x] Rotate cards
+- [x] Layer ordering (bring forward / send backward)
+- [x] Reset board
 
-### v1.2 — Interactivity
-- [ ] Drag and drop cards to reposition
-- [ ] Add / delete images from UI
-- [ ] Add / edit text cards from UI
-- [ ] Resize cards
-
-### v1.3 — Polish
-- [ ] Animation when board loads (cards fly in)
+### v1.2 — Next
+- [ ] Animation when board loads
 - [ ] Tap card to zoom in
-- [ ] Long press to delete
-
-### v1.4 — Advanced Flutter
 - [ ] State management with Riverpod
+
+### v1.3 — Future
 - [ ] Firebase storage for images
 - [ ] Firebase Auth (personal board per user)
 - [ ] Export board as image
-
-### Future
 - [ ] Mobile support (iOS / Android)
 - [ ] Multiple boards
 
@@ -100,15 +103,14 @@ vision_board/
 
 ## Learning Goals
 
-This project is intentionally used to explore Flutter concepts:
-
 - `StatelessWidget` vs `StatefulWidget`
 - `Stack` + `Positioned` for free layout
 - `CustomPainter` for custom drawing
-- `GestureDetector` for drag interactions
+- `GestureDetector` for drag / tap / double tap
 - `MediaQuery` for responsive sizing
-- State management (setState → Riverpod)
-- Local storage → Cloud storage progression
+- `shared_preferences` for local persistence
+- `file_picker` for file uploads
+- Overlay pattern for decoupled UI controls
 
 ---
 
