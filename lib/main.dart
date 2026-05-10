@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'dart:math';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,7 +17,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -26,65 +30,133 @@ class MyApp extends StatelessWidget {
   }
 }
 
-enum CardStyle { torn, tornMore, lined, textOnly, stamp, handwritten }
+enum CardStyle {
+  torn,
+  tornMore,
+  lined,
+  textOnly,
+  stamp,
+  handwritten,
+  neon,
+  hologram,
+  bubble,
+  outline,
+  retro,
+  glitch,
+  chrome,
+  rainbow,
+}
+
+// ★ image 추가
+enum BgType { solid, gradient, dots, lines, grid, crosshatch, image }
+
+class BoardBackground {
+  BgType type;
+  int color1;
+  int color2;
+  int color3;
+  bool useColor3;
+  double patternSize;
+  String? imageBase64; // ★ 배경 이미지
+
+  BoardBackground({
+    this.type = BgType.solid,
+    this.color1 = 0xFF0a0a0a,
+    this.color2 = 0xFF1a1a2e,
+    this.color3 = 0xFF16213e,
+    this.useColor3 = false,
+    this.patternSize = 20.0,
+    this.imageBase64,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'type': type.index,
+    'color1': color1,
+    'color2': color2,
+    'color3': color3,
+    'useColor3': useColor3,
+    'patternSize': patternSize,
+    'imageBase64': imageBase64,
+  };
+
+  factory BoardBackground.fromJson(Map<String, dynamic> json) =>
+      BoardBackground(
+        type: BgType.values[json['type'] ?? 0],
+        color1: json['color1'] ?? 0xFF0a0a0a,
+        color2: json['color2'] ?? 0xFF1a1a2e,
+        color3: json['color3'] ?? 0xFF16213e,
+        useColor3: json['useColor3'] ?? false,
+        patternSize: json['patternSize'] ?? 20.0,
+        imageBase64: json['imageBase64'],
+      );
+}
 
 class BoardCard {
   String? imageUrl;
   String? imageBase64;
   String? text;
-  double x;
-  double y;
-  double width;
-  double height;
-  double rotation;
+  double xRatio, yRatio, widthRatio, heightRatio, rotation;
   CardStyle style;
-  int colorIndex;
+  int paperColor, textColor;
 
   BoardCard({
     this.imageUrl,
     this.imageBase64,
     this.text,
-    required this.x,
-    required this.y,
-    required this.width,
-    required this.height,
+    required this.xRatio,
+    required this.yRatio,
+    required this.widthRatio,
+    required this.heightRatio,
     this.rotation = 0,
     this.style = CardStyle.torn,
-    this.colorIndex = 0,
+    this.paperColor = 0xFFF5F0E8,
+    this.textColor = 0xFF1a1a1a,
   });
+
+  double x(double w) => xRatio * w;
+  double y(double h) => yRatio * h;
+  double width(double w) => widthRatio * w;
+  double height(double w) => heightRatio * w;
 
   Map<String, dynamic> toJson() => {
     'imageUrl': imageUrl,
     'imageBase64': imageBase64,
     'text': text,
-    'x': x,
-    'y': y,
-    'width': width,
-    'height': height,
+    'xRatio': xRatio,
+    'yRatio': yRatio,
+    'widthRatio': widthRatio,
+    'heightRatio': heightRatio,
     'rotation': rotation,
     'style': style.index,
-    'colorIndex': colorIndex,
+    'paperColor': paperColor,
+    'textColor': textColor,
   };
 
-  factory BoardCard.fromJson(Map<String, dynamic> json) => BoardCard(
-    imageUrl: json['imageUrl'],
-    imageBase64: json['imageBase64'],
-    text: json['text'],
-    x: json['x'],
-    y: json['y'],
-    width: json['width'],
-    height: json['height'],
-    rotation: json['rotation'] ?? 0,
-    style: CardStyle.values[json['style'] ?? 0],
-    colorIndex: json['colorIndex'] ?? 0,
-  );
+  factory BoardCard.fromJson(Map<String, dynamic> json) {
+    final hasRatio = json.containsKey('xRatio');
+    final si = json['style'] ?? 0;
+    return BoardCard(
+      imageUrl: json['imageUrl'],
+      imageBase64: json['imageBase64'],
+      text: json['text'],
+      xRatio: hasRatio ? json['xRatio'] : 0.1,
+      yRatio: hasRatio ? json['yRatio'] : 0.1,
+      widthRatio: hasRatio ? json['widthRatio'] : 0.12,
+      heightRatio: hasRatio ? json['heightRatio'] : 0.12,
+      rotation: json['rotation'] ?? 0,
+      style: si < CardStyle.values.length
+          ? CardStyle.values[si]
+          : CardStyle.torn,
+      paperColor: json['paperColor'] ?? 0xFFF5F0E8,
+      textColor: json['textColor'] ?? 0xFF1a1a1a,
+    );
+  }
 }
 
 class TornPaperPainter extends CustomPainter {
   final Color color;
   final int seed;
   final CardStyle style;
-
   TornPaperPainter({
     required this.color,
     required this.seed,
@@ -94,93 +166,212 @@ class TornPaperPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rng = Random(seed);
-    if (style == CardStyle.textOnly ||
-        style == CardStyle.stamp ||
-        style == CardStyle.handwritten)
-      return;
-
+    final skip = [
+      CardStyle.textOnly,
+      CardStyle.stamp,
+      CardStyle.handwritten,
+      CardStyle.neon,
+      CardStyle.hologram,
+      CardStyle.bubble,
+      CardStyle.outline,
+      CardStyle.retro,
+      CardStyle.glitch,
+      CardStyle.chrome,
+      CardStyle.rainbow,
+    ];
+    if (skip.contains(style)) return;
     final paint = Paint()..color = color;
-    final path = Path();
-
     if (style == CardStyle.lined) {
       canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
-      final redPaint = Paint()
-        ..color = const Color(0xFFFF9999).withOpacity(0.6)
-        ..strokeWidth = 1.5;
-      canvas.drawLine(const Offset(28, 0), Offset(28, size.height), redPaint);
-      final linePaint = Paint()
+      canvas.drawLine(
+        const Offset(28, 0),
+        Offset(28, size.height),
+        Paint()
+          ..color = const Color(0xFFFF9999).withOpacity(0.6)
+          ..strokeWidth = 1.5,
+      );
+      final lp = Paint()
         ..color = const Color(0xFF99BBDD).withOpacity(0.5)
         ..strokeWidth = 0.8;
-      double lineY = 20;
-      while (lineY < size.height) {
-        canvas.drawLine(Offset(0, lineY), Offset(size.width, lineY), linePaint);
-        lineY += 18;
+      double ly = 20;
+      while (ly < size.height) {
+        canvas.drawLine(Offset(0, ly), Offset(size.width, ly), lp);
+        ly += 18;
       }
-      final tearPaint = Paint()..color = const Color(0xFF0a0a0a);
-      final topPath = Path();
-      topPath.moveTo(0, 0);
+      final tp = Paint()..color = const Color(0xFF0a0a0a);
+      final top = Path();
+      top.moveTo(0, 0);
       double x = 0;
       while (x < size.width) {
         x += 5 + rng.nextDouble() * 7;
-        topPath.lineTo(x.clamp(0, size.width), rng.nextDouble() * 10);
+        top.lineTo(x.clamp(0, size.width), rng.nextDouble() * 10);
       }
-      topPath.lineTo(size.width, 0);
-      topPath.close();
-      canvas.drawPath(topPath, tearPaint);
-      final botPath = Path();
-      botPath.moveTo(0, size.height);
+      top.lineTo(size.width, 0);
+      top.close();
+      canvas.drawPath(top, tp);
+      final bot = Path();
+      bot.moveTo(0, size.height);
       x = 0;
       while (x < size.width) {
         x += 5 + rng.nextDouble() * 7;
-        botPath.lineTo(
-          x.clamp(0, size.width),
-          size.height - rng.nextDouble() * 10,
-        );
+        bot.lineTo(x.clamp(0, size.width), size.height - rng.nextDouble() * 10);
       }
-      botPath.lineTo(size.width, size.height);
-      botPath.close();
-      canvas.drawPath(botPath, tearPaint);
+      bot.lineTo(size.width, size.height);
+      bot.close();
+      canvas.drawPath(bot, tp);
       return;
     }
-
-    final roughness = style == CardStyle.tornMore ? 0.25 : 0.15;
-    path.moveTo(0, size.height * roughness);
-    double xPos = 0;
-    while (xPos < size.width) {
-      xPos += 4 + rng.nextDouble() * (style == CardStyle.tornMore ? 6 : 8);
-      final y = size.height * 0.02 + rng.nextDouble() * size.height * roughness;
-      path.lineTo(xPos.clamp(0, size.width), y);
+    final r = style == CardStyle.tornMore ? 0.25 : 0.15;
+    final path = Path();
+    path.moveTo(0, size.height * r);
+    double xp = 0;
+    while (xp < size.width) {
+      xp += 4 + rng.nextDouble() * (style == CardStyle.tornMore ? 6 : 8);
+      path.lineTo(
+        xp.clamp(0, size.width),
+        size.height * 0.02 + rng.nextDouble() * size.height * r,
+      );
     }
-    path.lineTo(size.width, size.height * (1 - roughness));
-    xPos = size.width;
-    while (xPos > 0) {
-      xPos -= 4 + rng.nextDouble() * (style == CardStyle.tornMore ? 6 : 8);
-      final y =
-          size.height * (1 - roughness * 0.3) +
-          rng.nextDouble() * size.height * roughness;
-      path.lineTo(xPos.clamp(0, size.width), y);
+    path.lineTo(size.width, size.height * (1 - r));
+    xp = size.width;
+    while (xp > 0) {
+      xp -= 4 + rng.nextDouble() * (style == CardStyle.tornMore ? 6 : 8);
+      path.lineTo(
+        xp.clamp(0, size.width),
+        size.height * (1 - r * 0.3) + rng.nextDouble() * size.height * r,
+      );
     }
     path.close();
     canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+class BackgroundPainter extends CustomPainter {
+  final BoardBackground bg;
+  BackgroundPainter(this.bg);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c1 = Color(bg.color1);
+    final c2 = Color(bg.color2);
+    final c3 = Color(bg.color3);
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+
+    if (bg.type == BgType.solid || bg.type == BgType.image) {
+      canvas.drawRect(rect, Paint()..color = c1);
+      return;
+    }
+    if (bg.type == BgType.gradient) {
+      final colors = bg.useColor3 ? [c1, c2, c3] : [c1, c2];
+      final stops = bg.useColor3 ? [0.0, 0.5, 1.0] : [0.0, 1.0];
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..shader = LinearGradient(
+            colors: colors,
+            stops: stops,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ).createShader(rect),
+      );
+      return;
+    }
+    canvas.drawRect(rect, Paint()..color = c1);
+    final pp = Paint()
+      ..color = c2
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+    final sp = bg.patternSize;
+    if (bg.type == BgType.dots) {
+      pp.style = PaintingStyle.fill;
+      for (double x = sp; x < size.width; x += sp)
+        for (double y = sp; y < size.height; y += sp)
+          canvas.drawCircle(Offset(x, y), 1.5, pp);
+      return;
+    }
+    if (bg.type == BgType.lines) {
+      for (double y = 0; y < size.height; y += sp)
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), pp);
+      return;
+    }
+    if (bg.type == BgType.grid) {
+      for (double x = 0; x < size.width; x += sp)
+        canvas.drawLine(Offset(x, 0), Offset(x, size.height), pp);
+      for (double y = 0; y < size.height; y += sp)
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), pp);
+      return;
+    }
+    if (bg.type == BgType.crosshatch) {
+      for (double i = -size.height; i < size.width + size.height; i += sp) {
+        canvas.drawLine(Offset(i, 0), Offset(i + size.height, size.height), pp);
+        canvas.drawLine(Offset(i + size.height, 0), Offset(i, size.height), pp);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant BackgroundPainter old) =>
+      old.bg.type != bg.type ||
+      old.bg.color1 != bg.color1 ||
+      old.bg.color2 != bg.color2 ||
+      old.bg.color3 != bg.color3 ||
+      old.bg.useColor3 != bg.useColor3 ||
+      old.bg.patternSize != bg.patternSize;
 }
 
 class VisionBoardPage extends StatefulWidget {
   const VisionBoardPage({super.key});
-
   @override
   State<VisionBoardPage> createState() => _VisionBoardPageState();
 }
 
-class _VisionBoardPageState extends State<VisionBoardPage> {
+class _VisionBoardPageState extends State<VisionBoardPage>
+    with TickerProviderStateMixin {
   List<BoardCard> cards = [];
+  BoardBackground background = BoardBackground();
   int? selectedIndex;
   bool isLoading = true;
+  bool _animStarted = false;
+  bool _isExporting = false;
 
-  static const paperColors = [
+  final GlobalKey _boardKey = GlobalKey();
+  late AnimationController _introController;
+  late AnimationController _floatController;
+  late AnimationController _neonController;
+  final List<double> _floatOffsets = [];
+  static const _stickerCurve = _StickerCurve();
+
+  static const styleLabels = {
+    CardStyle.torn: 'Torn',
+    CardStyle.tornMore: 'Ripped',
+    CardStyle.lined: 'Notebook',
+    CardStyle.textOnly: 'Float',
+    CardStyle.stamp: 'Stamp',
+    CardStyle.handwritten: 'Script',
+    CardStyle.neon: '⚡ Neon',
+    CardStyle.hologram: '🌈 Holo',
+    CardStyle.bubble: '🫧 Bubble',
+    CardStyle.outline: '⬜ Outline',
+    CardStyle.retro: '🎮 Retro',
+    CardStyle.glitch: '👾 Glitch',
+    CardStyle.chrome: '🪞 Chrome',
+    CardStyle.rainbow: '🌈 Rainbow',
+  };
+
+  static const bgTypeLabels = {
+    BgType.solid: 'Solid',
+    BgType.gradient: 'Gradient',
+    BgType.dots: 'Dots',
+    BgType.lines: 'Lines',
+    BgType.grid: 'Grid',
+    BgType.crosshatch: 'Cross',
+    BgType.image: 'Image',
+  };
+
+  static const presetPaperColors = [
     Color(0xFFF5F0E8),
     Color(0xFFE8E8E8),
     Color(0xFFF0ECD8),
@@ -190,16 +381,121 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
     Color(0xFFEDE8D0),
     Color(0xFFFFE4E4),
     Color(0xFFE4F0FF),
+    Color(0xFFE8F5E8),
+    Color(0xFFFFF3CD),
+    Color(0xFFEDE0FF),
   ];
 
-  static const styleLabels = {
-    CardStyle.torn: 'Torn',
-    CardStyle.tornMore: 'Ripped',
-    CardStyle.lined: 'Notebook',
-    CardStyle.textOnly: 'Float',
-    CardStyle.stamp: 'Stamp',
-    CardStyle.handwritten: 'Script',
-  };
+  static const presetTextColors = [
+    Color(0xFF1a1a1a),
+    Color(0xFFFFFFFF),
+    Color(0xFF8B0000),
+    Color(0xFF1B3A6B),
+    Color(0xFF2D5A27),
+    Color(0xFF4A0E5C),
+    Color(0xFFB8860B),
+    Color(0xFF8B4513),
+    Color(0xFF006666),
+    Color(0xFF8B008B),
+  ];
+
+  static final bgPresets = [
+    {
+      'name': 'Black',
+      'bg': BoardBackground(type: BgType.solid, color1: 0xFF0a0a0a),
+    },
+    {
+      'name': 'Dark Blue',
+      'bg': BoardBackground(
+        type: BgType.gradient,
+        color1: 0xFF0a0a1a,
+        color2: 0xFF1a1a3e,
+      ),
+    },
+    {
+      'name': 'Midnight',
+      'bg': BoardBackground(
+        type: BgType.gradient,
+        color1: 0xFF0d0d0d,
+        color2: 0xFF1a0a2e,
+        color3: 0xFF0a1a2e,
+        useColor3: true,
+      ),
+    },
+    {
+      'name': 'Warm Dark',
+      'bg': BoardBackground(
+        type: BgType.gradient,
+        color1: 0xFF1a0a00,
+        color2: 0xFF2e1a0a,
+      ),
+    },
+    {
+      'name': 'Dots',
+      'bg': BoardBackground(
+        type: BgType.dots,
+        color1: 0xFF0a0a0a,
+        color2: 0xFF333333,
+        patternSize: 24,
+      ),
+    },
+    {
+      'name': 'Grid',
+      'bg': BoardBackground(
+        type: BgType.grid,
+        color1: 0xFF0a0a0a,
+        color2: 0xFF1e1e1e,
+        patternSize: 30,
+      ),
+    },
+    {
+      'name': 'Lines',
+      'bg': BoardBackground(
+        type: BgType.lines,
+        color1: 0xFF0a0a0a,
+        color2: 0xFF1e1e1e,
+        patternSize: 28,
+      ),
+    },
+    {
+      'name': 'Cross',
+      'bg': BoardBackground(
+        type: BgType.crosshatch,
+        color1: 0xFF0a0a0a,
+        color2: 0xFF1a1a1a,
+        patternSize: 20,
+      ),
+    },
+    {
+      'name': 'Forest',
+      'bg': BoardBackground(
+        type: BgType.gradient,
+        color1: 0xFF0a1a0a,
+        color2: 0xFF1a2e1a,
+      ),
+    },
+    {
+      'name': 'Rose',
+      'bg': BoardBackground(
+        type: BgType.gradient,
+        color1: 0xFF1a0a0f,
+        color2: 0xFF2e0a1a,
+      ),
+    },
+    {
+      'name': 'White',
+      'bg': BoardBackground(type: BgType.solid, color1: 0xFFF5F0E8),
+    },
+    {
+      'name': 'Cream',
+      'bg': BoardBackground(
+        type: BgType.dots,
+        color1: 0xFFF5F0E8,
+        color2: 0xFFDDD8CC,
+        patternSize: 20,
+      ),
+    },
+  ];
 
   static const defaultImages = [
     'imgs/0058235e3ebb2729faf21be0403e05df.jpg',
@@ -242,11 +538,48 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
   @override
   void initState() {
     super.initState();
+    _introController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    );
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    _neonController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
     _loadBoard();
+  }
+
+  @override
+  void dispose() {
+    _introController.dispose();
+    _floatController.dispose();
+    _neonController.dispose();
+    super.dispose();
+  }
+
+  void _initFloatOffsets() {
+    final rng = Random(42);
+    _floatOffsets.clear();
+    for (int i = 0; i < cards.length; i++)
+      _floatOffsets.add(rng.nextDouble() * pi * 2);
+  }
+
+  void _startIntroAnimation() {
+    if (_animStarted) return;
+    _animStarted = true;
+    _introController.reset();
+    _introController.forward();
   }
 
   Future<void> _loadBoard() async {
     final prefs = await SharedPreferences.getInstance();
+    final savedBg = prefs.getString('board_background');
+    if (savedBg != null)
+      background = BoardBackground.fromJson(jsonDecode(savedBg));
     final saved = prefs.getString('board_cards');
     if (saved != null) {
       final List<dynamic> jsonList = jsonDecode(saved);
@@ -254,12 +587,19 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
         cards = jsonList.map((e) => BoardCard.fromJson(e)).toList();
         isLoading = false;
       });
+      _initFloatOffsets();
     } else {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _generateDefaultBoard();
         setState(() => isLoading = false);
+        _initFloatOffsets();
       });
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) _startIntroAnimation();
+      });
+    });
   }
 
   Future<void> _saveBoard() async {
@@ -267,6 +607,673 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
     await prefs.setString(
       'board_cards',
       jsonEncode(cards.map((c) => c.toJson()).toList()),
+    );
+    await prefs.setString('board_background', jsonEncode(background.toJson()));
+  }
+
+  Future<void> _exportAsPng() async {
+    setState(() => _isExporting = true);
+    try {
+      setState(() => selectedIndex = null);
+      await Future.delayed(const Duration(milliseconds: 100));
+      final boundary =
+          _boardKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) return;
+      final image = await boundary.toImage(pixelRatio: 2.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+      _downloadBytes(byteData.buffer.asUint8List(), 'vision_board.png');
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Saved as PNG! 🎨'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Color(0xFF1a1a1a),
+          ),
+        );
+    } catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+    } finally {
+      setState(() => _isExporting = false);
+    }
+  }
+
+  void _downloadBytes(Uint8List bytes, String filename) {
+    final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.AnchorElement(href: url)
+      ..setAttribute('download', filename)
+      ..click();
+    html.Url.revokeObjectUrl(url);
+  }
+
+  void _showExportDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1a1a1a),
+        title: const Text(
+          'Export Board',
+          style: TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Choose export format:',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(ctx);
+                _exportAsPng();
+              },
+              child: Container(
+                width: 100,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.image, color: Colors.white, size: 28),
+                    SizedBox(height: 6),
+                    Text(
+                      'PNG',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'High quality',
+                      style: TextStyle(color: Colors.grey, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ★ 배경 이미지 선택
+  Future<String?> _pickBgImage() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+      withData: true,
+    );
+    if (result == null) return null;
+    final bytes = result.files.first.bytes;
+    if (bytes == null) return null;
+    return base64Encode(bytes);
+  }
+
+  void _showBgDialog() {
+    BgType selectedType = background.type;
+    Color selectedColor1 = Color(background.color1);
+    Color selectedColor2 = Color(background.color2);
+    Color selectedColor3 = Color(background.color3);
+    bool useColor3 = background.useColor3;
+    double patternSize = background.patternSize;
+    String? selectedImageBase64 = background.imageBase64;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: const Color(0xFF1a1a1a),
+          child: Container(
+            width: 560,
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Background',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ★ 이미지 업로드 버튼
+                  GestureDetector(
+                    onTap: () async {
+                      final b64 = await _pickBgImage();
+                      if (b64 != null) {
+                        setDialogState(() {
+                          selectedType = BgType.image;
+                          selectedImageBase64 = b64;
+                        });
+                      }
+                    },
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: selectedType == BgType.image
+                            ? Colors.white.withOpacity(0.15)
+                            : Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: selectedType == BgType.image
+                              ? Colors.white.withOpacity(0.6)
+                              : Colors.white.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.wallpaper,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            selectedType == BgType.image &&
+                                    selectedImageBase64 != null
+                                ? 'Image uploaded ✓ (tap to change)'
+                                : 'Upload Background Image',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 이미지 선택 시 제거 버튼
+                  if (selectedType == BgType.image &&
+                      selectedImageBase64 != null) ...[
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => setDialogState(() {
+                        selectedType = BgType.solid;
+                        selectedImageBase64 = null;
+                      }),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.close, color: Colors.grey, size: 14),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Remove image',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 16),
+
+                  // 프리셋
+                  const Text(
+                    'Presets',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 60,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: bgPresets.length,
+                      itemBuilder: (ctx, i) {
+                        final preset = bgPresets[i];
+                        final presetBg = preset['bg'] as BoardBackground;
+                        return GestureDetector(
+                          onTap: () => setDialogState(() {
+                            selectedType = presetBg.type;
+                            selectedColor1 = Color(presetBg.color1);
+                            selectedColor2 = Color(presetBg.color2);
+                            selectedColor3 = Color(presetBg.color3);
+                            useColor3 = presetBg.useColor3;
+                            patternSize = presetBg.patternSize;
+                            selectedImageBase64 = null;
+                          }),
+                          child: Container(
+                            width: 56,
+                            height: 56,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(7),
+                              child: CustomPaint(
+                                size: const Size(56, 56),
+                                painter: BackgroundPainter(presetBg),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 타입 선택 (image 제외)
+                  if (selectedType != BgType.image) ...[
+                    const Text(
+                      'Pattern',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: BgType.values
+                          .where((t) => t != BgType.image)
+                          .map((t) {
+                            final isSel = selectedType == t;
+                            return GestureDetector(
+                              onTap: () =>
+                                  setDialogState(() => selectedType = t),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSel
+                                      ? Colors.white
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.4),
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  bgTypeLabels[t]!,
+                                  style: TextStyle(
+                                    color: isSel ? Colors.black : Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            );
+                          })
+                          .toList(),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 색상 선택
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Color 1',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              GestureDetector(
+                                onTap: () async {
+                                  final p = await _showColorPickerDialog(
+                                    ctx,
+                                    selectedColor1,
+                                    'Color 1',
+                                  );
+                                  if (p != null)
+                                    setDialogState(() => selectedColor1 = p);
+                                },
+                                child: Container(
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: selectedColor1,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.colorize,
+                                      color:
+                                          selectedColor1.computeLuminance() >
+                                              0.5
+                                          ? Colors.black54
+                                          : Colors.white54,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                selectedType == BgType.gradient
+                                    ? 'Color 2'
+                                    : 'Pattern Color',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              GestureDetector(
+                                onTap: () async {
+                                  final p = await _showColorPickerDialog(
+                                    ctx,
+                                    selectedColor2,
+                                    'Color 2',
+                                  );
+                                  if (p != null)
+                                    setDialogState(() => selectedColor2 = p);
+                                },
+                                child: Container(
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: selectedColor2,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.colorize,
+                                      color:
+                                          selectedColor2.computeLuminance() >
+                                              0.5
+                                          ? Colors.black54
+                                          : Colors.white54,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (selectedType == BgType.gradient) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      'Color 3',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    GestureDetector(
+                                      onTap: () => setDialogState(
+                                        () => useColor3 = !useColor3,
+                                      ),
+                                      child: Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          color: useColor3
+                                              ? Colors.white
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white.withOpacity(
+                                              0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        child: useColor3
+                                            ? const Icon(
+                                                Icons.check,
+                                                size: 14,
+                                                color: Colors.black,
+                                              )
+                                            : null,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                GestureDetector(
+                                  onTap: useColor3
+                                      ? () async {
+                                          final p =
+                                              await _showColorPickerDialog(
+                                                ctx,
+                                                selectedColor3,
+                                                'Color 3',
+                                              );
+                                          if (p != null)
+                                            setDialogState(
+                                              () => selectedColor3 = p,
+                                            );
+                                        }
+                                      : null,
+                                  child: Opacity(
+                                    opacity: useColor3 ? 1.0 : 0.3,
+                                    child: Container(
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: selectedColor3,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.colorize,
+                                          color:
+                                              selectedColor3
+                                                      .computeLuminance() >
+                                                  0.5
+                                              ? Colors.black54
+                                              : Colors.white54,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    if (selectedType != BgType.solid &&
+                        selectedType != BgType.gradient) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Pattern Size',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Slider(
+                              value: patternSize,
+                              min: 10,
+                              max: 60,
+                              divisions: 10,
+                              activeColor: Colors.white,
+                              inactiveColor: Colors.white24,
+                              onChanged: (v) =>
+                                  setDialogState(() => patternSize = v),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 32,
+                            child: Text(
+                              '${patternSize.round()}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+
+                  // 미리보기
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Preview',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      height: 100,
+                      width: double.infinity,
+                      child:
+                          selectedType == BgType.image &&
+                              selectedImageBase64 != null
+                          ? Image.memory(
+                              base64Decode(selectedImageBase64!),
+                              fit: BoxFit.cover,
+                            )
+                          : CustomPaint(
+                              size: const Size(double.infinity, 100),
+                              painter: BackgroundPainter(
+                                BoardBackground(
+                                  type: selectedType,
+                                  color1: selectedColor1.value,
+                                  color2: selectedColor2.value,
+                                  color3: selectedColor3.value,
+                                  useColor3: useColor3,
+                                  patternSize: patternSize,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            background = BoardBackground(
+                              type: selectedType,
+                              color1: selectedColor1.value,
+                              color2: selectedColor2.value,
+                              color3: selectedColor3.value,
+                              useColor3: useColor3,
+                              patternSize: patternSize,
+                              imageBase64: selectedImageBase64,
+                            );
+                          });
+                          _saveBoard();
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text(
+                          'Apply',
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<Color?> _showColorPickerDialog(
+    BuildContext context,
+    Color initial,
+    String title,
+  ) async {
+    Color picked = initial;
+    return showDialog<Color>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1a1a1a),
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        content: SingleChildScrollView(
+          child: ColorPicker(
+            pickerColor: picked,
+            onColorChanged: (c) => picked = c,
+            enableAlpha: true,
+            labelTypes: const [],
+            pickerAreaHeightPercent: 0.7,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, picked),
+            child: const Text('OK', style: TextStyle(color: Colors.black)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -278,136 +1285,151 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
     final newCards = <BoardCard>[];
 
     const centerImgPath = 'imgs/87c88cb11e2f37df0fd2b4134692dbf2.jpg';
-    const centerW = 220.0;
-    const centerH = 220.0;
-    final centerX = (screenW - centerW) / 2;
-    final centerY = (screenH - centerH - 24) / 2;
-    placedRects.add(Rect.fromLTWH(centerX, centerY, centerW, centerH + 24));
+    const centerWR = 0.18;
+    const centerHR = 0.18;
+    final centerXR = (1.0 - centerWR) / 2;
+    final centerYR = (1.0 - centerHR) / 2 - 0.02;
+    placedRects.add(
+      Rect.fromLTWH(
+        centerXR * screenW,
+        centerYR * screenH,
+        centerWR * screenW,
+        centerHR * screenW,
+      ),
+    );
 
     final topForced = [
-      Offset(
-        rng.nextDouble() * (screenW * 0.25),
-        8 + rng.nextDouble() * (screenH * 0.15),
-      ),
-      Offset(
-        screenW * 0.25 + rng.nextDouble() * (screenW * 0.25),
-        8 + rng.nextDouble() * (screenH * 0.15),
-      ),
-      Offset(
-        screenW * 0.5 + rng.nextDouble() * (screenW * 0.25),
-        8 + rng.nextDouble() * (screenH * 0.15),
-      ),
-      Offset(
-        screenW * 0.75 + rng.nextDouble() * (screenW * 0.2),
-        8 + rng.nextDouble() * (screenH * 0.15),
-      ),
+      Offset(rng.nextDouble() * 0.25, 0.01 + rng.nextDouble() * 0.12),
+      Offset(0.25 + rng.nextDouble() * 0.25, 0.01 + rng.nextDouble() * 0.12),
+      Offset(0.5 + rng.nextDouble() * 0.25, 0.01 + rng.nextDouble() * 0.12),
+      Offset(0.75 + rng.nextDouble() * 0.2, 0.01 + rng.nextDouble() * 0.12),
     ];
 
     int topCount = 0;
     for (final img in defaultImages) {
       if (img == centerImgPath) continue;
-      final cw = 100.0 + rng.nextDouble() * 80;
-      final ch = 100.0 + rng.nextDouble() * 80;
+      final cwR = 0.08 + rng.nextDouble() * 0.06;
+      final chR = 0.08 + rng.nextDouble() * 0.06;
       Offset? placed;
       if (topCount < 4) {
         placed = topForced[topCount++];
-        placedRects.add(Rect.fromLTWH(placed.dx, placed.dy, cw, ch));
+        placedRects.add(
+          Rect.fromLTWH(
+            placed.dx * screenW,
+            placed.dy * screenH,
+            cwR * screenW,
+            chR * screenW,
+          ),
+        );
       } else {
         for (int attempt = 0; attempt < 300; attempt++) {
-          final x = 8 + rng.nextDouble() * (screenW - cw - 16);
-          final y = 8 + rng.nextDouble() * (screenH - ch - 16);
-          final rect = Rect.fromLTWH(x, y, cw, ch);
+          final xR = 0.01 + rng.nextDouble() * (0.98 - cwR);
+          final yR = 0.01 + rng.nextDouble() * (0.98 - chR);
+          final rect = Rect.fromLTWH(
+            xR * screenW,
+            yR * screenH,
+            cwR * screenW,
+            chR * screenW,
+          );
           if (!placedRects.any((r) => _overlaps(r, rect))) {
-            placed = Offset(x, y);
+            placed = Offset(xR, yR);
             placedRects.add(rect);
             break;
           }
         }
       }
       placed ??= Offset(
-        8 + rng.nextDouble() * (screenW - cw - 16),
-        8 + rng.nextDouble() * (screenH - ch - 16),
+        0.01 + rng.nextDouble() * (0.98 - cwR),
+        0.01 + rng.nextDouble() * (0.98 - chR),
       );
       newCards.add(
         BoardCard(
           imageUrl: img,
-          x: placed.dx,
-          y: placed.dy,
-          width: cw,
-          height: ch,
+          xRatio: placed.dx,
+          yRatio: placed.dy,
+          widthRatio: cwR,
+          heightRatio: chR,
           rotation: (rng.nextDouble() - 0.5) * 0.45,
         ),
       );
     }
-
     newCards.add(
       BoardCard(
         imageUrl: centerImgPath,
-        x: centerX,
-        y: centerY,
-        width: centerW,
-        height: centerH,
+        xRatio: centerXR,
+        yRatio: centerYR,
+        widthRatio: centerWR,
+        heightRatio: centerHR,
         rotation: 0,
       ),
     );
 
     final textItems = [
-      ('DREAM BIG', CardStyle.torn, 0),
-      ('ANTHROPIC', CardStyle.textOnly, 1),
-      ('AI & ETHICS', CardStyle.tornMore, 2),
-      ('NO BORDERS', CardStyle.torn, 3),
-      ('ANGEL INVESTOR', CardStyle.lined, 4),
-      ("i'm in love\nwith my future.", CardStyle.handwritten, 5),
-      ('INVEST.\nGROW.\nREPEAT.', CardStyle.stamp, 6),
-      ('SHE WINS.', CardStyle.textOnly, 0),
+      ('DREAM BIG', CardStyle.neon, 0xFFF5F0E8, 0xFFFF6EC7),
+      ('ANTHROPIC', CardStyle.hologram, 0xFFF5F0E8, 0xFFFFFFFF),
+      ('AI & ETHICS', CardStyle.bubble, 0xFFF0ECD8, 0xFFFFFFFF),
+      ('NO BORDERS', CardStyle.glitch, 0xFFEAEAEA, 0xFFFFFFFF),
+      ('ANGEL INVESTOR', CardStyle.retro, 0xFFF5EFD6, 0xFFFFD700),
+      (
+        "i'm in love\nwith my future.",
+        CardStyle.handwritten,
+        0xFFF5F0E8,
+        0xFFFFFFFF,
+      ),
+      ('INVEST.\nGROW.\nREPEAT.', CardStyle.chrome, 0xFFEDE8D0, 0xFFFFFFFF),
+      ('SHE WINS.', CardStyle.rainbow, 0xFFF5F0E8, 0xFFFFFFFF),
     ];
 
     const txtCols = 4;
     const txtRows = 2;
-    final txtZoneW = screenW / txtCols;
-    final txtZoneH = screenH / txtRows;
     final zoneOrder = List.generate(txtCols * txtRows, (i) => i)
       ..shuffle(Random(77));
-
     for (int i = 0; i < textItems.length; i++) {
-      final (text, style, colorIdx) = textItems[i];
-      final cw = 120.0 + rng.nextDouble() * 60;
-      final ch = 60.0 + rng.nextDouble() * 50;
+      final (text, style, paperColor, textColor) = textItems[i];
+      final cwR = 0.10 + rng.nextDouble() * 0.05;
+      final chR = 0.07 + rng.nextDouble() * 0.04;
       final zoneIdx = zoneOrder[i % zoneOrder.length];
-      final zoneLeft = (zoneIdx % txtCols) * txtZoneW;
-      final zoneTop = (zoneIdx ~/ txtCols) * txtZoneH;
+      final zoneLeft = (zoneIdx % txtCols) / txtCols;
+      final zoneTop = (zoneIdx ~/ txtCols) / txtRows;
+      final zoneW = 1.0 / txtCols;
+      final zoneH = 1.0 / txtRows;
       Offset? placed;
       for (int attempt = 0; attempt < 500; attempt++) {
-        final x =
+        final xR =
             zoneLeft +
-            8 +
-            rng.nextDouble() * (txtZoneW - cw - 16).clamp(0, double.infinity);
-        final y =
+            0.01 +
+            rng.nextDouble() * (zoneW - cwR - 0.01).clamp(0, 1.0);
+        final yR =
             zoneTop +
-            8 +
-            rng.nextDouble() * (txtZoneH - ch - 16).clamp(0, double.infinity);
-        final rect = Rect.fromLTWH(x, y, cw, ch);
+            0.01 +
+            rng.nextDouble() * (zoneH - chR - 0.01).clamp(0, 1.0);
+        final rect = Rect.fromLTWH(
+          xR * screenW,
+          yR * screenH,
+          cwR * screenW,
+          chR * screenW,
+        );
         if (!placedRects.any((r) => _overlaps(r, rect))) {
-          placed = Offset(x, y);
+          placed = Offset(xR, yR);
           placedRects.add(rect);
           break;
         }
       }
-      placed ??= Offset(zoneLeft + 8, zoneTop + 8);
+      placed ??= Offset(zoneLeft + 0.01, zoneTop + 0.01);
       newCards.add(
         BoardCard(
           text: text,
-          x: placed.dx,
-          y: placed.dy,
-          width: cw,
-          height: ch,
+          xRatio: placed.dx,
+          yRatio: placed.dy,
+          widthRatio: cwR,
+          heightRatio: chR,
           rotation: (rng.nextDouble() - 0.5) * 0.45,
           style: style,
-          colorIndex: colorIdx,
+          paperColor: paperColor,
+          textColor: textColor,
         ),
       );
     }
-
     setState(() => cards = newCards);
     _saveBoard();
   }
@@ -434,13 +1456,14 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
       cards.add(
         BoardCard(
           imageBase64: base64Str,
-          x: 80 + rng.nextDouble() * 100,
-          y: 80 + rng.nextDouble() * 100,
-          width: 150 + rng.nextDouble() * 60,
-          height: 150 + rng.nextDouble() * 60,
+          xRatio: 0.05 + rng.nextDouble() * 0.1,
+          yRatio: 0.05 + rng.nextDouble() * 0.1,
+          widthRatio: 0.12 + rng.nextDouble() * 0.05,
+          heightRatio: 0.12 + rng.nextDouble() * 0.05,
           rotation: (rng.nextDouble() - 0.5) * 0.3,
         ),
       );
+      _floatOffsets.add(rng.nextDouble() * pi * 2);
     });
     _saveBoard();
   }
@@ -450,7 +1473,8 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
     final card = isEdit ? cards[editIndex] : null;
     final controller = TextEditingController(text: card?.text ?? '');
     CardStyle selectedStyle = card?.style ?? CardStyle.torn;
-    int selectedColor = card?.colorIndex ?? 0;
+    Color selectedPaperColor = Color(card?.paperColor ?? 0xFFF5F0E8);
+    Color selectedTextColor = Color(card?.textColor ?? 0xFF1a1a1a);
 
     showDialog(
       context: context,
@@ -458,7 +1482,7 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
         builder: (ctx, setDialogState) => Dialog(
           backgroundColor: const Color(0xFF1a1a1a),
           child: Container(
-            width: 520,
+            width: 600,
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -496,81 +1520,194 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           const Text(
                             'Style',
                             style: TextStyle(color: Colors.grey, fontSize: 12),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Wrap(
                             spacing: 8,
-                            runSpacing: 8,
-                            children: CardStyle.values.map((s) {
-                              final isSel = selectedStyle == s;
-                              return GestureDetector(
-                                onTap: () =>
-                                    setDialogState(() => selectedStyle = s),
+                            runSpacing: 6,
+                            children:
+                                [
+                                  CardStyle.torn,
+                                  CardStyle.tornMore,
+                                  CardStyle.lined,
+                                  CardStyle.textOnly,
+                                  CardStyle.stamp,
+                                  CardStyle.handwritten,
+                                ].map((s) {
+                                  final isSel = selectedStyle == s;
+                                  return GestureDetector(
+                                    onTap: () =>
+                                        setDialogState(() => selectedStyle = s),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isSel
+                                            ? Colors.white
+                                            : Colors.transparent,
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.4),
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        styleLabels[s]!,
+                                        style: TextStyle(
+                                          color: isSel
+                                              ? Colors.black
+                                              : Colors.white,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Special FX',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children:
+                                [
+                                  CardStyle.neon,
+                                  CardStyle.hologram,
+                                  CardStyle.bubble,
+                                  CardStyle.outline,
+                                  CardStyle.retro,
+                                  CardStyle.glitch,
+                                  CardStyle.chrome,
+                                  CardStyle.rainbow,
+                                ].map((s) {
+                                  final isSel = selectedStyle == s;
+                                  return GestureDetector(
+                                    onTap: () =>
+                                        setDialogState(() => selectedStyle = s),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isSel
+                                            ? Colors.white
+                                            : Colors.transparent,
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.4),
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        styleLabels[s]!,
+                                        style: TextStyle(
+                                          color: isSel
+                                              ? Colors.black
+                                              : Colors.white,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Text Color',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: presetTextColors
+                                      .map(
+                                        (c) => GestureDetector(
+                                          onTap: () => setDialogState(
+                                            () => selectedTextColor = c,
+                                          ),
+                                          child: Container(
+                                            width: 24,
+                                            height: 24,
+                                            decoration: BoxDecoration(
+                                              color: c,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: selectedTextColor == c
+                                                    ? Colors.white
+                                                    : Colors.grey.withOpacity(
+                                                        0.4,
+                                                      ),
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: selectedTextColor == c
+                                                ? Icon(
+                                                    Icons.check,
+                                                    size: 12,
+                                                    color:
+                                                        c.computeLuminance() >
+                                                            0.5
+                                                        ? Colors.black
+                                                        : Colors.white,
+                                                  )
+                                                : null,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () async {
+                                  final p = await _showColorPickerDialog(
+                                    ctx,
+                                    selectedTextColor,
+                                    'Text Color',
+                                  );
+                                  if (p != null)
+                                    setDialogState(() => selectedTextColor = p);
+                                },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
+                                  width: 36,
+                                  height: 36,
+                                  margin: const EdgeInsets.only(left: 8),
                                   decoration: BoxDecoration(
-                                    color: isSel
-                                        ? Colors.white
-                                        : Colors.transparent,
+                                    color: selectedTextColor,
+                                    borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
                                       color: Colors.white.withOpacity(0.5),
                                     ),
-                                    borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: Text(
-                                    styleLabels[s]!,
-                                    style: TextStyle(
-                                      color: isSel
-                                          ? Colors.black
-                                          : Colors.white,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Paper Color',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: List.generate(
-                              paperColors.length,
-                              (i) => GestureDetector(
-                                onTap: () =>
-                                    setDialogState(() => selectedColor = i),
-                                child: Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                    color: paperColors[i],
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: selectedColor == i
-                                          ? Colors.white
-                                          : Colors.transparent,
-                                      width: 2.5,
-                                    ),
+                                  child: Icon(
+                                    Icons.colorize,
+                                    size: 18,
+                                    color:
+                                        selectedTextColor.computeLuminance() >
+                                            0.5
+                                        ? Colors.black54
+                                        : Colors.white54,
                                   ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -580,16 +1717,20 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          width: 180,
-                          height: 180,
+                          width: 160,
+                          height: 200,
                           color: const Color(0xFF0a0a0a),
                           child: Center(
-                            child: _buildPreviewCard(
+                            child: _buildSpecialTextCard(
                               text: controller.text.isEmpty
-                                  ? 'Your text here'
+                                  ? 'Preview'
                                   : controller.text,
                               style: selectedStyle,
-                              colorIndex: selectedColor,
+                              textColor: selectedTextColor,
+                              paperColor: selectedPaperColor,
+                              w: 150,
+                              h: 80,
+                              neonFlicker: 1.0,
                             ),
                           ),
                         ),
@@ -615,25 +1756,30 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
                       ),
                       onPressed: () {
                         if (controller.text.isNotEmpty) {
+                          final rng = Random();
                           setState(() {
                             if (isEdit) {
                               cards[editIndex].text = controller.text;
                               cards[editIndex].style = selectedStyle;
-                              cards[editIndex].colorIndex = selectedColor;
+                              cards[editIndex].paperColor =
+                                  selectedPaperColor.value;
+                              cards[editIndex].textColor =
+                                  selectedTextColor.value;
                             } else {
-                              final rng = Random();
                               cards.add(
                                 BoardCard(
                                   text: controller.text,
-                                  x: 100,
-                                  y: 100,
-                                  width: 160,
-                                  height: 90,
+                                  xRatio: 0.05,
+                                  yRatio: 0.05,
+                                  widthRatio: 0.13,
+                                  heightRatio: 0.09,
                                   rotation: (rng.nextDouble() - 0.5) * 0.3,
                                   style: selectedStyle,
-                                  colorIndex: selectedColor,
+                                  paperColor: selectedPaperColor.value,
+                                  textColor: selectedTextColor.value,
                                 ),
                               );
+                              _floatOffsets.add(rng.nextDouble() * pi * 2);
                             }
                           });
                           _saveBoard();
@@ -655,83 +1801,10 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
     );
   }
 
-  Widget _buildPreviewCard({
-    required String text,
-    required CardStyle style,
-    required int colorIndex,
-  }) {
-    final color = paperColors[colorIndex % paperColors.length];
-    if (style == CardStyle.textOnly)
-      return Text(
-        text,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.playfairDisplay(
-          color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-          shadows: [
-            Shadow(color: Colors.black.withOpacity(0.8), blurRadius: 8),
-          ],
-        ),
-      );
-    if (style == CardStyle.stamp)
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(color: color, width: 3),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.playfairDisplay(
-            color: color,
-            fontSize: 13,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 3,
-          ),
-        ),
-      );
-    if (style == CardStyle.handwritten)
-      return Text(
-        text,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.dancingScript(
-          color: Colors.white.withOpacity(0.9),
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-        ),
-      );
-    return CustomPaint(
-      painter: TornPaperPainter(
-        color: color,
-        seed: text.hashCode,
-        style: style,
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          style == CardStyle.lined ? 36 : 12,
-          16,
-          12,
-          12,
-        ),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.playfairDisplay(
-            color: const Color(0xFF1a1a1a),
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            height: 1.4,
-          ),
-        ),
-      ),
-    );
-  }
-
   void _deleteCard(int index) {
     setState(() {
       cards.removeAt(index);
+      if (index < _floatOffsets.length) _floatOffsets.removeAt(index);
       selectedIndex = null;
     });
     _saveBoard();
@@ -742,6 +1815,10 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
       setState(() {
         final c = cards.removeAt(index);
         cards.insert(index + 1, c);
+        if (index < _floatOffsets.length) {
+          final o = _floatOffsets.removeAt(index);
+          _floatOffsets.insert(index + 1, o);
+        }
         selectedIndex = index + 1;
       });
       _saveBoard();
@@ -753,6 +1830,10 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
       setState(() {
         final c = cards.removeAt(index);
         cards.insert(index - 1, c);
+        if (index < _floatOffsets.length) {
+          final o = _floatOffsets.removeAt(index);
+          _floatOffsets.insert(index - 1, o);
+        }
         selectedIndex = index - 1;
       });
       _saveBoard();
@@ -779,11 +1860,18 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
               Navigator.pop(ctx);
               final prefs = await SharedPreferences.getInstance();
               await prefs.remove('board_cards');
+              await prefs.remove('board_background');
               setState(() {
                 cards = [];
                 selectedIndex = null;
+                _animStarted = false;
+                background = BoardBackground();
               });
               _generateDefaultBoard();
+              _initFloatOffsets();
+              Future.delayed(const Duration(milliseconds: 300), () {
+                if (mounted) _startIntroAnimation();
+              });
             },
             child: const Text('Reset', style: TextStyle(color: Colors.red)),
           ),
@@ -792,7 +1880,6 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
     );
   }
 
-  // Build control handle button
   Widget _handle({
     required IconData icon,
     required Color bg,
@@ -820,104 +1907,17 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0a0a0a),
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF0a0a0a),
-      body: GestureDetector(
-        onTap: () => setState(() => selectedIndex = null),
-        behavior: HitTestBehavior.translucent,
-        child: Stack(
-          children: [
-            // Cards
-            ...List.generate(cards.length, (index) {
-              final card = cards[index];
-              return Positioned(
-                left: card.x,
-                top: card.y,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(
-                    () => selectedIndex = selectedIndex == index ? null : index,
-                  ),
-                  onDoubleTap: () {
-                    if (card.text != null) _showTextDialog(editIndex: index);
-                  },
-                  onPanUpdate: (d) {
-                    setState(() {
-                      card.x += d.delta.dx;
-                      card.y += d.delta.dy;
-                    });
-                  },
-                  onPanEnd: (_) => _saveBoard(),
-                  child: Transform.rotate(
-                    angle: card.rotation,
-                    child: card.imageUrl != null || card.imageBase64 != null
-                        ? _buildPhotoCard(card)
-                        : _buildTextCard(card),
-                  ),
-                ),
-              );
-            }),
-
-            // Control overlay - completely separate from cards
-            if (selectedIndex != null && selectedIndex! < cards.length)
-              ..._buildControls(cards[selectedIndex!], selectedIndex!),
-
-            // Toolbar
-            Positioned(
-              bottom: 24,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _toolbarButton(Icons.upload_file, 'Upload Image', _pickImage),
-                  const SizedBox(width: 12),
-                  _toolbarButton(
-                    Icons.text_fields,
-                    'Add Text',
-                    () => _showTextDialog(),
-                  ),
-                  const SizedBox(width: 12),
-                  _toolbarButton(Icons.save, 'Save', () async {
-                    await _saveBoard();
-                    if (mounted)
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Board saved! ✨'),
-                          duration: Duration(seconds: 1),
-                          backgroundColor: Color(0xFF1a1a1a),
-                        ),
-                      );
-                  }),
-                  const SizedBox(width: 12),
-                  _toolbarButton(Icons.refresh, 'Reset', _confirmReset),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Build control handles as overlay - completely independent from card widgets
-  List<Widget> _buildControls(BoardCard card, int index) {
-    final left = card.x;
-    final top = card.y;
-    final right = card.x + card.width;
-    final bottom = card.y + card.height + 24;
-
+  List<Widget> _buildControls(
+    BoardCard card,
+    int index,
+    double screenW,
+    double screenH,
+  ) {
+    final left = card.x(screenW);
+    final top = card.y(screenH);
+    final right = left + card.width(screenW);
+    final bottom = top + card.height(screenW) + 24;
     return [
-      // Delete - top right
       Positioned(
         left: right - 14,
         top: top - 14,
@@ -928,8 +1928,6 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
           onTap: () => _deleteCard(index),
         ),
       ),
-
-      // Send backward - top left
       Positioned(
         left: left - 14,
         top: top - 14,
@@ -940,8 +1938,6 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
           onTap: () => _sendBackward(index),
         ),
       ),
-
-      // Bring forward - top left + offset
       Positioned(
         left: left + 18,
         top: top - 14,
@@ -952,8 +1948,6 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
           onTap: () => _bringForward(index),
         ),
       ),
-
-      // Resize - bottom right
       Positioned(
         left: right - 14,
         top: bottom - 14,
@@ -962,14 +1956,14 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
           bg: Colors.white,
           iconColor: Colors.black,
           onPanUpdate: (d) => setState(() {
-            card.width = (card.width + d.delta.dx).clamp(60, 400);
-            card.height = (card.height + d.delta.dy).clamp(40, 400);
+            card.widthRatio = ((card.width(screenW) + d.delta.dx) / screenW)
+                .clamp(0.05, 0.6);
+            card.heightRatio = ((card.height(screenW) + d.delta.dy) / screenW)
+                .clamp(0.03, 0.6);
           }),
           onPanEnd: (_) => _saveBoard(),
         ),
       ),
-
-      // Rotate - bottom left
       Positioned(
         left: left - 14,
         top: bottom - 14,
@@ -985,10 +1979,283 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
     ];
   }
 
-  Widget _buildPhotoCard(BoardCard card) {
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading)
+      return const Scaffold(
+        backgroundColor: Color(0xFF0a0a0a),
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0a0a0a),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final screenW = constraints.maxWidth;
+          final screenH = constraints.maxHeight;
+
+          return GestureDetector(
+            onTap: () => setState(() => selectedIndex = null),
+            behavior: HitTestBehavior.translucent,
+            child: Stack(
+              children: [
+                RepaintBoundary(
+                  key: _boardKey,
+                  child: SizedBox(
+                    width: screenW,
+                    height: screenH,
+                    child: Stack(
+                      children: [
+                        // ★ 배경 - 이미지 or 패턴/색
+                        Positioned.fill(
+                          child:
+                              background.type == BgType.image &&
+                                  background.imageBase64 != null
+                              ? Image.memory(
+                                  base64Decode(background.imageBase64!),
+                                  fit: BoxFit.cover,
+                                )
+                              : CustomPaint(
+                                  painter: BackgroundPainter(background),
+                                ),
+                        ),
+
+                        // 카드들
+                        AnimatedBuilder(
+                          animation: Listenable.merge([
+                            _introController,
+                            _floatController,
+                            _neonController,
+                          ]),
+                          builder: (context, _) {
+                            return Stack(
+                              children: List.generate(cards.length, (index) {
+                                final card = cards[index];
+                                final isSelected = selectedIndex == index;
+                                final px = card.x(screenW);
+                                final py = card.y(screenH);
+                                final pw = card.width(screenW);
+                                final ph = card.height(screenW);
+
+                                final total = cards.length.clamp(1, 9999);
+                                final progress = total <= 1
+                                    ? 0.0
+                                    : index / (total - 1);
+                                final delay = (progress * 0.65).clamp(
+                                  0.0,
+                                  0.65,
+                                );
+                                final end = (delay + 0.3).clamp(
+                                  delay + 0.01,
+                                  1.0,
+                                );
+                                final introAnim = CurvedAnimation(
+                                  parent: _introController,
+                                  curve: Interval(
+                                    delay,
+                                    end,
+                                    curve: _stickerCurve,
+                                  ),
+                                );
+                                final introVal = introAnim.value.clamp(
+                                  0.0,
+                                  1.2,
+                                );
+                                final opacity = Curves.easeIn.transform(
+                                  introVal.clamp(0.0, 1.0),
+                                );
+                                final introRotation =
+                                    (1.0 - introVal.clamp(0.0, 1.0)) *
+                                    (index.isEven ? 0.2 : -0.2);
+
+                                final floatOffset = index < _floatOffsets.length
+                                    ? _floatOffsets[index]
+                                    : 0.0;
+                                final floatY = isSelected
+                                    ? 0.0
+                                    : sin(
+                                            _floatController.value * pi +
+                                                floatOffset,
+                                          ) *
+                                          4.0;
+                                final floatRot = isSelected
+                                    ? 0.0
+                                    : sin(
+                                            _floatController.value * pi +
+                                                floatOffset +
+                                                1.0,
+                                          ) *
+                                          0.008;
+                                final neonFlicker = card.style == CardStyle.neon
+                                    ? 0.6 +
+                                          sin(
+                                                _neonController.value * pi * 2 +
+                                                    floatOffset,
+                                              ) *
+                                              0.4
+                                    : 1.0;
+
+                                return Positioned(
+                                  left: px,
+                                  top: py + floatY,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () => setState(
+                                      () => selectedIndex =
+                                          selectedIndex == index ? null : index,
+                                    ),
+                                    onDoubleTap: () {
+                                      if (card.text != null)
+                                        _showTextDialog(editIndex: index);
+                                    },
+                                    onPanUpdate: (d) {
+                                      setState(() {
+                                        card.xRatio =
+                                            ((card.xRatio * screenW +
+                                                        d.delta.dx) /
+                                                    screenW)
+                                                .clamp(0.0, 1.0);
+                                        card.yRatio =
+                                            ((card.yRatio * screenH +
+                                                        d.delta.dy) /
+                                                    screenH)
+                                                .clamp(0.0, 1.0);
+                                      });
+                                    },
+                                    onPanEnd: (_) => _saveBoard(),
+                                    child: Opacity(
+                                      opacity: opacity.clamp(0.0, 1.0),
+                                      child: Transform.scale(
+                                        scale: introVal.clamp(0.0, 1.3),
+                                        child: Transform.rotate(
+                                          angle:
+                                              card.rotation +
+                                              introRotation +
+                                              floatRot,
+                                          child:
+                                              card.imageUrl != null ||
+                                                  card.imageBase64 != null
+                                              ? _buildPhotoCard(card, pw, ph)
+                                              : _buildSpecialTextCard(
+                                                  text: card.text!,
+                                                  style: card.style,
+                                                  textColor: Color(
+                                                    card.textColor,
+                                                  ),
+                                                  paperColor: Color(
+                                                    card.paperColor,
+                                                  ),
+                                                  w: pw,
+                                                  h: ph,
+                                                  neonFlicker: neonFlicker,
+                                                ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                if (selectedIndex != null && selectedIndex! < cards.length)
+                  ..._buildControls(
+                    cards[selectedIndex!],
+                    selectedIndex!,
+                    screenW,
+                    screenH,
+                  ),
+
+                Positioned(
+                  bottom: 24,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _toolbarButton(Icons.upload_file, 'Upload', _pickImage),
+                      const SizedBox(width: 10),
+                      _toolbarButton(
+                        Icons.text_fields,
+                        'Text',
+                        () => _showTextDialog(),
+                      ),
+                      const SizedBox(width: 10),
+                      _toolbarButton(Icons.wallpaper, 'BG', _showBgDialog),
+                      const SizedBox(width: 10),
+                      _toolbarButton(Icons.save, 'Save', () async {
+                        await _saveBoard();
+                        if (mounted)
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Board saved! ✨'),
+                              duration: Duration(seconds: 1),
+                              backgroundColor: Color(0xFF1a1a1a),
+                            ),
+                          );
+                      }),
+                      const SizedBox(width: 10),
+                      _isExporting
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                ),
+                              ),
+                              child: const Row(
+                                children: [
+                                  SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    '...',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : _toolbarButton(
+                              Icons.download,
+                              'Export',
+                              _showExportDialog,
+                            ),
+                      const SizedBox(width: 10),
+                      _toolbarButton(Icons.refresh, 'Reset', _confirmReset),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPhotoCard(BoardCard card, double w, double h) {
     return Container(
-      width: card.width,
-      height: card.height + 24,
+      width: w,
+      height: h + 24,
       decoration: BoxDecoration(
         color: const Color(0xFF111111),
         border: Border.all(color: Colors.white, width: 1.5),
@@ -1017,19 +2284,25 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
     );
   }
 
-  Widget _buildTextCard(BoardCard card) {
-    final color = paperColors[card.colorIndex % paperColors.length];
-
-    if (card.style == CardStyle.textOnly) {
+  Widget _buildSpecialTextCard({
+    required String text,
+    required CardStyle style,
+    required Color textColor,
+    required Color paperColor,
+    required double w,
+    required double h,
+    required double neonFlicker,
+  }) {
+    if (style == CardStyle.textOnly)
       return SizedBox(
-        width: card.width,
-        height: card.height,
+        width: w,
+        height: h,
         child: Center(
           child: Text(
-            card.text!,
+            text,
             textAlign: TextAlign.center,
             style: GoogleFonts.playfairDisplay(
-              color: Colors.white,
+              color: textColor,
               fontSize: 15,
               fontWeight: FontWeight.w800,
               letterSpacing: 2,
@@ -1040,39 +2313,37 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
           ),
         ),
       );
-    }
-    if (card.style == CardStyle.stamp) {
+    if (style == CardStyle.stamp)
       return Container(
-        width: card.width,
-        height: card.height,
+        width: w,
+        height: h,
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          border: Border.all(color: color, width: 3),
+          border: Border.all(color: paperColor, width: 3),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
-          card.text!,
+          text,
           textAlign: TextAlign.center,
           style: GoogleFonts.playfairDisplay(
-            color: color,
+            color: textColor,
             fontSize: 13,
             fontWeight: FontWeight.w900,
             letterSpacing: 3,
           ),
         ),
       );
-    }
-    if (card.style == CardStyle.handwritten) {
+    if (style == CardStyle.handwritten)
       return Container(
-        width: card.width,
-        height: card.height,
+        width: w,
+        height: h,
         alignment: Alignment.center,
         child: Text(
-          card.text!,
+          text,
           textAlign: TextAlign.center,
           style: GoogleFonts.dancingScript(
-            color: Colors.white.withOpacity(0.9),
+            color: textColor,
             fontSize: 18,
             fontWeight: FontWeight.w700,
             shadows: [
@@ -1081,38 +2352,319 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
           ),
         ),
       );
-    }
-
-    return SizedBox(
-      width: card.width,
-      height: card.height,
-      child: CustomPaint(
-        painter: TornPaperPainter(
-          color: color,
-          seed: card.text.hashCode,
-          style: card.style,
-        ),
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              card.style == CardStyle.lined ? 36 : 12,
-              16,
-              12,
-              12,
-            ),
-            child: Text(
-              card.text!,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.playfairDisplay(
-                color: const Color(0xFF1a1a1a),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-                height: 1.4,
+    if ([CardStyle.torn, CardStyle.tornMore, CardStyle.lined].contains(style))
+      return SizedBox(
+        width: w,
+        height: h,
+        child: CustomPaint(
+          painter: TornPaperPainter(
+            color: paperColor,
+            seed: text.hashCode,
+            style: style,
+          ),
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                style == CardStyle.lined ? 36 : 12,
+                16,
+                12,
+                12,
+              ),
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.playfairDisplay(
+                  color: textColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                  height: 1.4,
+                ),
               ),
             ),
           ),
         ),
+      );
+    if (style == CardStyle.neon)
+      return SizedBox(
+        width: w,
+        height: h,
+        child: Center(
+          child: Opacity(
+            opacity: neonFlicker.clamp(0.4, 1.0),
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.playfairDisplay(
+                color: textColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+                shadows: [
+                  Shadow(color: textColor.withOpacity(0.9), blurRadius: 4),
+                  Shadow(color: textColor.withOpacity(0.7), blurRadius: 10),
+                  Shadow(color: textColor.withOpacity(0.4), blurRadius: 20),
+                  Shadow(color: textColor.withOpacity(0.2), blurRadius: 40),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    if (style == CardStyle.hologram)
+      return SizedBox(
+        width: w,
+        height: h,
+        child: Center(
+          child: ShaderMask(
+            shaderCallback: (b) => const LinearGradient(
+              colors: [
+                Color(0xFFFF6EC7),
+                Color(0xFFA78BFA),
+                Color(0xFF60A5FA),
+                Color(0xFF34D399),
+                Color(0xFFFF6EC7),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ).createShader(b),
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.playfairDisplay(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+              ),
+            ),
+          ),
+        ),
+      );
+    if (style == CardStyle.bubble)
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            width: w,
+            height: h,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.25),
+                width: 1.5,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.playfairDisplay(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  shadows: [
+                    Shadow(color: Colors.white.withOpacity(0.3), blurRadius: 8),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    if (style == CardStyle.outline)
+      return SizedBox(
+        width: w,
+        height: h,
+        child: Center(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Text(
+                text,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  foreground: Paint()
+                    ..style = PaintingStyle.stroke
+                    ..strokeWidth = 1.5
+                    ..color = textColor,
+                ),
+              ),
+              Text(
+                text,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  color: Colors.transparent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    if (style == CardStyle.retro) {
+      final sc = HSLColor.fromColor(textColor)
+          .withLightness(
+            (HSLColor.fromColor(textColor).lightness * 0.5).clamp(0.0, 1.0),
+          )
+          .toColor();
+      return SizedBox(
+        width: w,
+        height: h,
+        child: Center(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.playfairDisplay(
+              color: textColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+              shadows: [
+                Shadow(color: sc, offset: const Offset(1, 1)),
+                Shadow(color: sc.withOpacity(0.8), offset: const Offset(2, 2)),
+                Shadow(color: sc.withOpacity(0.6), offset: const Offset(3, 3)),
+                Shadow(
+                  color: Colors.black.withOpacity(0.4),
+                  offset: const Offset(4, 4),
+                  blurRadius: 2,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    if (style == CardStyle.glitch)
+      return SizedBox(
+        width: w,
+        height: h,
+        child: Center(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Transform.translate(
+                offset: const Offset(2.5, 0),
+                child: Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.playfairDisplay(
+                    color: const Color(0xFF00FFFF).withOpacity(0.7),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+              Transform.translate(
+                offset: const Offset(-2.5, 0),
+                child: Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.playfairDisplay(
+                    color: const Color(0xFFFF0066).withOpacity(0.7),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+              Text(
+                text,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.playfairDisplay(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    if (style == CardStyle.chrome)
+      return SizedBox(
+        width: w,
+        height: h,
+        child: Center(
+          child: ShaderMask(
+            shaderCallback: (b) => const LinearGradient(
+              colors: [
+                Color(0xFFFFFFFF),
+                Color(0xFF888888),
+                Color(0xFFFFFFFF),
+                Color(0xFF555555),
+                Color(0xFFFFFFFF),
+              ],
+              stops: [0.0, 0.3, 0.5, 0.7, 1.0],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ).createShader(b),
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.playfairDisplay(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 3,
+              ),
+            ),
+          ),
+        ),
+      );
+    if (style == CardStyle.rainbow)
+      return Container(
+        width: w,
+        height: h,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFFFF6EC7),
+              Color(0xFFA78BFA),
+              Color(0xFF60A5FA),
+              Color(0xFF34D399),
+              Color(0xFFFBBF24),
+              Color(0xFFFF6EC7),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0a0a0a),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Center(
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.playfairDisplay(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ),
+        ),
+      );
+    return SizedBox(
+      width: w,
+      height: h,
+      child: Center(
+        child: Text(text, style: const TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -1121,7 +2673,7 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.08),
           borderRadius: BorderRadius.circular(30),
@@ -1130,7 +2682,7 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
         child: Row(
           children: [
             Icon(icon, color: Colors.white, size: 16),
-            const SizedBox(width: 6),
+            const SizedBox(width: 5),
             Text(
               label,
               style: const TextStyle(color: Colors.white, fontSize: 12),
@@ -1139,5 +2691,20 @@ class _VisionBoardPageState extends State<VisionBoardPage> {
         ),
       ),
     );
+  }
+}
+
+class _StickerCurve extends Curve {
+  const _StickerCurve();
+  @override
+  double transform(double t) {
+    if (t < 0.6)
+      return Curves.easeOut.transform(t / 0.6);
+    else if (t < 0.75)
+      return 1.0 + (t - 0.6) / 0.15 * 0.12;
+    else if (t < 0.9)
+      return 1.12 - (t - 0.75) / 0.15 * 0.16;
+    else
+      return 0.96 + (t - 0.9) / 0.1 * 0.04;
   }
 }

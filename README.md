@@ -10,7 +10,8 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 
 ### Board
 - Polaroid-style photo cards with random sizes and rotations
-- 6 text card styles: Torn, Ripped, Notebook, Float, Stamp, Script
+- 14 text card styles: Torn, Ripped, Notebook, Float, Stamp, Script + 8 special effects
+- Special effects: ⚡ Neon (animated flicker), 🌈 Hologram, 🫧 Bubble, ⬜ Outline, 🎮 Retro, 👾 Glitch, 🪞 Chrome, 🌈 Rainbow
 - Center-pinned focal image
 - Overlap-prevention algorithm for natural collage layout
 - Google Fonts (Playfair Display, Dancing Script)
@@ -28,9 +29,28 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 - **Add** custom text cards with live preview
 - **Reset** board to original state
 
+### Background
+- 6 pattern types: Solid, Gradient (2–3 colors), Dots, Lines, Grid, Crosshatch
+- 12 built-in presets (Black, Dark Blue, Midnight, Forest, Rose, White, Cream...)
+- Full color picker for each color slot
+- Adjustable pattern size via slider
+- **Upload a custom background image**
+- Real-time preview in the dialog
+- Background persists across sessions
+
+### Animation
+- Sticker-drop intro animation — cards appear one by one with a custom bounce curve
+- Floating ambient animation — cards gently drift after landing
+- Neon flicker — neon text cards pulse continuously
+- 3 animation controllers total (previously 40) — no lag
+
+### Export
+- Export board as high-quality PNG (2x pixel ratio) via browser download
+
 ### Persistence
-- Board state saved to browser localStorage via `shared_preferences`
+- All cards, positions, styles, and background saved to browser localStorage
 - Uploaded images encoded as base64 and persisted across sessions
+- Fully responsive — card positions stored as ratios, not pixels
 
 ---
 
@@ -41,7 +61,11 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 - `google_fonts`
 - `shared_preferences`
 - `file_picker`
-- `CustomPainter` for torn paper effects
+- `flutter_colorpicker`
+- `CustomPainter` for torn paper effects and background patterns
+- `BackdropFilter` for bubble glass effect
+- `ShaderMask` for hologram and chrome effects
+- `dart:html` for PNG download
 
 ---
 
@@ -87,17 +111,26 @@ Vision-Board-/
 - [x] Layer ordering (bring forward / send backward)
 - [x] Reset board
 
-### v1.2 — Next
-- [ ] Animation when board loads
+### v1.3 — Done
+- [x] Sticker-drop intro animation with custom curve
+- [x] Floating ambient animation (sin wave, per-card phase offset)
+- [x] Responsive layout — ratio-based card positions
+- [x] Animation performance — 40 controllers → 3
+- [x] 8 special text effects (Neon, Hologram, Bubble, Outline, Retro, Glitch, Chrome, Rainbow)
+- [x] Neon flicker animation
+- [x] Background customization (solid, gradient, patterns, image upload)
+- [x] Export board as PNG
+
+### v1.4 — Next
 - [ ] Tap card to zoom in
 - [ ] State management with Riverpod
+- [ ] Multiple boards
 
-### v1.3 — Future
+### v1.5 — Future
 - [ ] Firebase storage for images
 - [ ] Firebase Auth (personal board per user)
-- [ ] Export board as image
+- [ ] GIF export (native app)
 - [ ] Mobile support (iOS / Android)
-- [ ] Multiple boards
 
 ---
 
@@ -105,12 +138,16 @@ Vision-Board-/
 
 - `StatelessWidget` vs `StatefulWidget`
 - `Stack` + `Positioned` for free layout
-- `CustomPainter` for custom drawing
+- `CustomPainter` for custom drawing (torn paper, background patterns)
 - `GestureDetector` for drag / tap / double tap
-- `MediaQuery` for responsive sizing
+- `LayoutBuilder` for responsive sizing
+- `AnimationController` + custom `Curve` for sticker physics
+- `ShaderMask` + `BackdropFilter` for visual effects
 - `shared_preferences` for local persistence
 - `file_picker` for file uploads
-- Overlay pattern for decoupled UI controls
+- `RepaintBoundary` for image export
+- `dart:html` for browser download
+- Ratio-based layout for window resize support
 
 ---
 
