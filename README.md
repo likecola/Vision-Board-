@@ -12,10 +12,25 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 - Polaroid-style photo cards with random sizes and rotations
 - 14 text card styles: Torn, Ripped, Notebook, Float, Stamp, Script + 8 special effects
 - Special effects: ⚡ Neon (animated flicker), 🌈 Hologram, 🫧 Bubble, ⬜ Outline, 🎮 Retro, 👾 Glitch, 🪞 Chrome, 🌈 Rainbow
-- Center-pinned focal image
 - Overlap-prevention algorithm for natural collage layout
 - Google Fonts (Playfair Display, Dancing Script)
 - Single screen — no scrolling
+
+### Mood System
+- 5 mood themes: ✨ Manifestation, 🌿 Soft Life, 💪 That Girl, 🌀 Cyber Dream, 🌍 Wanderlust
+- Each mood applies matching images, text cards, effects, colors, and background in one tap
+- Random background image selected from a per-mood asset pool on each apply
+- Per-mood intro animations — each mood feels completely different on load
+- Per-mood floating speed and neon flicker intensity
+
+### Mood Animations
+| Mood | Intro Style |
+|------|------------|
+| ✨ Manifestation | Cards fly in from all directions and slam into place |
+| 🌿 Soft Life | Cards fall from above like leaves, swaying gently |
+| 💪 That Girl | Cards snap into place column by column, left to right |
+| 🌀 Cyber Dream | Cards glitch between random positions before locking in |
+| 🌍 Wanderlust | Cards rise from below through mist, fading in softly |
 
 ### Editing
 - **Drag** any card to reposition
@@ -34,15 +49,16 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 - 12 built-in presets (Black, Dark Blue, Midnight, Forest, Rose, White, Cream...)
 - Full color picker for each color slot
 - Adjustable pattern size via slider
-- **Upload a custom background image**
+- Upload a custom background image
+- Mood-matched background images (asset-based, randomly selected)
 - Real-time preview in the dialog
 - Background persists across sessions
 
 ### Animation
-- Sticker-drop intro animation — cards appear one by one with a custom bounce curve
-- Floating ambient animation — cards gently drift after landing
-- Neon flicker — neon text cards pulse continuously
-- 3 animation controllers total (previously 40) — no lag
+- Per-mood intro animations — 5 distinct styles
+- Floating ambient animation — speed and amplitude vary by mood
+- Neon flicker — intensity varies by mood (Cyber Dream flickers most aggressively)
+- 3 animation controllers total — no lag
 
 ### Export
 - Export board as high-quality PNG (2x pixel ratio) via browser download
@@ -85,8 +101,19 @@ flutter run -d chrome
 ```
 Vision-Board-/
 ├── lib/
-│   └── main.dart         # All UI and logic
-├── imgs/                 # Vision board images (not tracked in git)
+│   └── main.dart              # All UI and logic
+├── imgs/
+│   ├── Manifestation/         # Personal images (not tracked in git)
+│   ├── soft_life/
+│   ├── That_Girl/
+│   ├── Cyber_Dream/
+│   └── wanderlust/
+├── background/
+│   ├── Manifestation/         # Mood background images (not tracked in git)
+│   ├── soft_life/
+│   ├── That_Girl/
+│   ├── Cyber_Dream/
+│   └── wanderlust/
 ├── pubspec.yaml
 └── README.md
 ```
@@ -121,14 +148,24 @@ Vision-Board-/
 - [x] Background customization (solid, gradient, patterns, image upload)
 - [x] Export board as PNG
 
-### v1.4 — Next
+### v1.4 — Done
+- [x] 5 mood themes (Manifestation, Soft Life, That Girl, Cyber Dream, Wanderlust)
+- [x] Per-mood image sets, text presets, color palettes, and background images
+- [x] Per-mood intro animations (5 distinct styles)
+- [x] Per-mood floating speed and neon flicker intensity
+- [x] Random background image selection from mood asset pool
+- [x] Asset-based background image support alongside user-uploaded images
+
+### v1.5 — Next
+- [ ] Quiz flow → mood result → board generation
 - [ ] Tap card to zoom in
 - [ ] State management with Riverpod
 - [ ] Multiple boards
 
-### v1.5 — Future
+### v1.6 — Future
 - [ ] Firebase storage for images
 - [ ] Firebase Auth (personal board per user)
+- [ ] Background music per mood
 - [ ] GIF export (native app)
 - [ ] Mobile support (iOS / Android)
 
@@ -148,9 +185,10 @@ Vision-Board-/
 - `RepaintBoundary` for image export
 - `dart:html` for browser download
 - Ratio-based layout for window resize support
+- Per-mood animation system with distinct intro styles
 
 ---
 
 ## Notes
 
-Images in `imgs/` are personal and not tracked in git (see `.gitignore`).
+Images in `imgs/` and `background/` are personal and not tracked in git (see `.gitignore`).

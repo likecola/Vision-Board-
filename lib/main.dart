@@ -47,17 +47,15 @@ enum CardStyle {
   rainbow,
 }
 
-// ★ image 추가
 enum BgType { solid, gradient, dots, lines, grid, crosshatch, image }
 
 class BoardBackground {
   BgType type;
-  int color1;
-  int color2;
-  int color3;
+  int color1, color2, color3;
   bool useColor3;
   double patternSize;
-  String? imageBase64; // ★ 배경 이미지
+  String? imageBase64;
+  String? imageAsset;
 
   BoardBackground({
     this.type = BgType.solid,
@@ -67,6 +65,7 @@ class BoardBackground {
     this.useColor3 = false,
     this.patternSize = 20.0,
     this.imageBase64,
+    this.imageAsset,
   });
 
   Map<String, dynamic> toJson() => {
@@ -77,6 +76,7 @@ class BoardBackground {
     'useColor3': useColor3,
     'patternSize': patternSize,
     'imageBase64': imageBase64,
+    'imageAsset': imageAsset,
   };
 
   factory BoardBackground.fromJson(Map<String, dynamic> json) =>
@@ -88,13 +88,12 @@ class BoardBackground {
         useColor3: json['useColor3'] ?? false,
         patternSize: json['patternSize'] ?? 20.0,
         imageBase64: json['imageBase64'],
+        imageAsset: json['imageAsset'],
       );
 }
 
 class BoardCard {
-  String? imageUrl;
-  String? imageBase64;
-  String? text;
+  String? imageUrl, imageBase64, text;
   double xRatio, yRatio, widthRatio, heightRatio, rotation;
   CardStyle style;
   int paperColor, textColor;
@@ -259,7 +258,6 @@ class BackgroundPainter extends CustomPainter {
     final c2 = Color(bg.color2);
     final c3 = Color(bg.color3);
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-
     if (bg.type == BgType.solid || bg.type == BgType.image) {
       canvas.drawRect(rect, Paint()..color = c1);
       return;
@@ -336,6 +334,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   bool isLoading = true;
   bool _animStarted = false;
   bool _isExporting = false;
+  String _currentMood = 'manifestation';
 
   final GlobalKey _boardKey = GlobalKey();
   late AnimationController _introController;
@@ -343,6 +342,54 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   late AnimationController _neonController;
   final List<double> _floatOffsets = [];
   static const _stickerCurve = _StickerCurve();
+
+  // ★ 무드별 플로팅 진폭
+  double get _floatAmplitude {
+    switch (_currentMood) {
+      case 'manifestation':
+        return 6.0;
+      case 'soft_life':
+        return 2.5;
+      case 'that_girl':
+        return 1.0;
+      case 'cyber_dream':
+        return 8.0;
+      case 'wanderlust':
+        return 5.0;
+      default:
+        return 4.0;
+    }
+  }
+
+  // ★ 무드별 플로팅 속도 (초)
+  double get _floatSpeedSeconds {
+    switch (_currentMood) {
+      case 'manifestation':
+        return 2.5;
+      case 'soft_life':
+        return 5.0;
+      case 'that_girl':
+        return 4.0;
+      case 'cyber_dream':
+        return 1.2;
+      case 'wanderlust':
+        return 3.5;
+      default:
+        return 3.0;
+    }
+  }
+
+  // ★ 무드별 네온 깜빡임 강도
+  double get _neonIntensityBase {
+    switch (_currentMood) {
+      case 'manifestation':
+        return 0.5;
+      case 'cyber_dream':
+        return 0.15;
+      default:
+        return 0.7;
+    }
+  }
 
   static const styleLabels = {
     CardStyle.torn: 'Torn',
@@ -498,42 +545,250 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   ];
 
   static const defaultImages = [
-    'imgs/0058235e3ebb2729faf21be0403e05df.jpg',
-    'imgs/015429bcd1aab1991f004d9ee9fdd3aa.jpg',
-    'imgs/1500e1282e7a2875d7066cf3647a9fba.jpg',
-    'imgs/2555133c526c260b0468435a6e015014.jpg',
-    'imgs/267c84483e854b8c522368366af931d5.jpg',
-    'imgs/2bd78ea72b681460f5e66bd58508053a.jpg',
-    'imgs/2d39cdb4711cd7d59bd7e2cd6f47a284.jpg',
-    'imgs/2e0337bf91f32a6ef1ea696829059b95.jpg',
-    'imgs/2fdbfddd084b6fa839c49678121e1373.jpg',
-    'imgs/3f9dc2e8a65259a47732248c1c9f7e0f.jpg',
-    'imgs/470ff04d04eea0ae117783d12deb3431.jpg',
-    'imgs/4f459f0c682cbaf55f08e91a55b381d1.jpg',
-    'imgs/56e368e13a4f79c1196a321d0f7eaa9e.jpg',
-    'imgs/5ae0ab29aa6572d938dcd58ad06d3518.jpg',
-    'imgs/5b13d82833aa572e10b94722afe025cd.jpg',
-    'imgs/5b4a5382b47fab34d65dd1eb5f8f3660.jpg',
-    'imgs/62722e12b7fd9a21fa15843666d06c35.jpg',
-    'imgs/64f589d7e4e6f1288907fef9575332f5.jpg',
-    'imgs/820fa7d61221505a529323b7d54e0ad4.jpg',
-    'imgs/8570b14f818387643170e52719063036.jpg',
-    'imgs/87c88cb11e2f37df0fd2b4134692dbf2.jpg',
-    'imgs/89fd9414c37a076060865cc59231fb97.jpg',
-    'imgs/8e90048fbaad09eae2a4d2726c3b693d.jpg',
-    'imgs/90281e2309ec2ec0e4a8271c06f326f6.jpg',
-    'imgs/917ff1305c11db37c219693aad437d52.jpg',
-    'imgs/984d44fa26519c56841468899e30ee1b.jpg',
-    'imgs/9e73a6ad113b3189f3ccd34bbcb8edcd.jpg',
-    'imgs/b4e4a383ebd0d41c7bb48603132a396a.jpg',
-    'imgs/daf20a82e77d072196224d0ea525d13b.jpg',
-    'imgs/dce74a4b5684af80207214f5343d963d.jpg',
-    'imgs/download.png',
-    'imgs/f409f422e30e12fd1b73b2c68a78160e.jpg',
-    'imgs/f6fbfd0d0714a01e3504d751dc1c6b29.jpg',
-    'imgs/fd67b28749505d645c4c7eb279124f9e.jpg',
-    'imgs/fd88e0b4103cb45944cc27d6a48207b8.jpg',
+    'imgs/Manifestation/0058235e3ebb2729faf21be0403e05df.jpg',
+    'imgs/Manifestation/015429bcd1aab1991f004d9ee9fdd3aa.jpg',
+    'imgs/Manifestation/1500e1282e7a2875d7066cf3647a9fba.jpg',
+    'imgs/Manifestation/2555133c526c260b0468435a6e015014.jpg',
+    'imgs/Manifestation/267c84483e854b8c522368366af931d5.jpg',
+    'imgs/Manifestation/2bd78ea72b681460f5e66bd58508053a.jpg',
+    'imgs/Manifestation/2d39cdb4711cd7d59bd7e2cd6f47a284.jpg',
+    'imgs/Manifestation/2e0337bf91f32a6ef1ea696829059b95.jpg',
+    'imgs/Manifestation/2fdbfddd084b6fa839c49678121e1373.jpg',
+    'imgs/Manifestation/3f9dc2e8a65259a47732248c1c9f7e0f.jpg',
+    'imgs/Manifestation/470ff04d04eea0ae117783d12deb3431.jpg',
+    'imgs/Manifestation/4f459f0c682cbaf55f08e91a55b381d1.jpg',
+    'imgs/Manifestation/56e368e13a4f79c1196a321d0f7eaa9e.jpg',
+    'imgs/Manifestation/5ae0ab29aa6572d938dcd58ad06d3518.jpg',
+    'imgs/Manifestation/5b13d82833aa572e10b94722afe025cd.jpg',
+    'imgs/Manifestation/5b4a5382b47fab34d65dd1eb5f8f3660.jpg',
+    'imgs/Manifestation/62722e12b7fd9a21fa15843666d06c35.jpg',
+    'imgs/Manifestation/64f589d7e4e6f1288907fef9575332f5.jpg',
+    'imgs/Manifestation/820fa7d61221505a529323b7d54e0ad4.jpg',
+    'imgs/Manifestation/8570b14f818387643170e52719063036.jpg',
+    'imgs/Manifestation/87c88cb11e2f37df0fd2b4134692dbf2.jpg',
+    'imgs/Manifestation/89fd9414c37a076060865cc59231fb97.jpg',
+    'imgs/Manifestation/8e90048fbaad09eae2a4d2726c3b693d.jpg',
+    'imgs/Manifestation/90281e2309ec2ec0e4a8271c06f326f6.jpg',
+    'imgs/Manifestation/917ff1305c11db37c219693aad437d52.jpg',
+    'imgs/Manifestation/984d44fa26519c56841468899e30ee1b.jpg',
+    'imgs/Manifestation/9e73a6ad113b3189f3ccd34bbcb8edcd.jpg',
+    'imgs/Manifestation/b4e4a383ebd0d41c7bb48603132a396a.jpg',
+    'imgs/Manifestation/daf20a82e77d072196224d0ea525d13b.jpg',
+    'imgs/Manifestation/dce74a4b5684af80207214f5343d963d.jpg',
+    'imgs/Manifestation/download.png',
+    'imgs/Manifestation/f409f422e30e12fd1b73b2c68a78160e.jpg',
+    'imgs/Manifestation/f6fbfd0d0714a01e3504d751dc1c6b29.jpg',
+    'imgs/Manifestation/fd67b28749505d645c4c7eb279124f9e.jpg',
+    'imgs/Manifestation/fd88e0b4103cb45944cc27d6a48207b8.jpg',
   ];
+
+  static const moodImages = {
+    'soft_life': [
+      'imgs/soft_life/397296e8caa6791e949d9764344c3cb7.jpg',
+      'imgs/soft_life/3db58c55748436c2c919260c2918d884.jpg',
+      'imgs/soft_life/50a7eab35d893750c7cdfc7342e58149.jpg',
+      'imgs/soft_life/5f269333b771c1a6586b9e72a410c5da.jpg',
+      'imgs/soft_life/7d124fb39c37b2b73ab8e9e20d33d3ea.jpg',
+      'imgs/soft_life/9054c9d1c125fe8d48b457694d325003.jpg',
+      'imgs/soft_life/94ed7c46bdb0c65a154c4524ca849fc9.jpg',
+      'imgs/soft_life/9e34c0a3a95ea2af7718162eaf57f17f.jpg',
+      'imgs/soft_life/9e8abfb9a82a4909f5dd09829ed3d027.jpg',
+      'imgs/soft_life/af40025ac695bb3be7b130203b84c07e.jpg',
+      'imgs/soft_life/bb984b2d629044af6dad472cba02fcce.jpg',
+      'imgs/soft_life/ce86653af823fdc0abeaabf05c4d2dad.jpg',
+      'imgs/soft_life/f76564f53cdf3b405db3844c4ecd26c6.jpg',
+    ],
+    'that_girl': [
+      'imgs/That_Girl/07d880005cff37003ed0bf38c0b1255e.jpg',
+      'imgs/That_Girl/08adcc76ccc4169152c1f8351540a6bc.jpg',
+      'imgs/That_Girl/17dada98387c1bfad6f8a9ea5cf85353.jpg',
+      'imgs/That_Girl/2af06e82c4611eb9456b9a61d61a5517.jpg',
+      'imgs/That_Girl/332a5a4c8603386a7d878c341559bf93.jpg',
+      'imgs/That_Girl/47b3610e80215ee88ee9f02ec5dc01dd.jpg',
+      'imgs/That_Girl/844f4c055d9aebae18cf054574bb7442.jpg',
+      'imgs/That_Girl/94df95c735206faace48660d8eda3ea3.jpg',
+      'imgs/That_Girl/a597ca0becf1821e0434b5fe72582267.jpg',
+      'imgs/That_Girl/b8a8dc19bedd05b6fba0d2639b794df0.jpg',
+      'imgs/That_Girl/c1486e95f3d4c09cfcc6b8dff252c240.jpg',
+      'imgs/That_Girl/d29158c2bb8c2a5d89b885eef79092f1.jpg',
+      'imgs/That_Girl/d8a9b7aaa459b45b48cd96ebe1815485.jpg',
+      'imgs/That_Girl/da3806c8af586dbc99579f76e5ac1ece.jpg',
+      'imgs/That_Girl/e0eca264f028a3a3620c5936a02e6879.jpg',
+    ],
+    'cyber_dream': [
+      'imgs/Cyber_Dream/01f1b09eed0368b4f2b6cf8f9b425a54.jpg',
+      'imgs/Cyber_Dream/42cc480f18c4085f97b9ce9230e43a46.jpg',
+      'imgs/Cyber_Dream/450b9a9d479faa2fef4afeefb4c23ddf.jpg',
+      'imgs/Cyber_Dream/5cba281f44c039c4d3e575ffc5624f7d.jpg',
+      'imgs/Cyber_Dream/65c4f1863636a89ede8db51693b8cf2b.jpg',
+      'imgs/Cyber_Dream/690dd4a8220f4ce2c27bc752fea4d782.jpg',
+      'imgs/Cyber_Dream/73c97c83550d909687823d5c10b529b1.jpg',
+      'imgs/Cyber_Dream/ac35ac79a27f5fddcd169c8ceb1b0ed2.jpg',
+      'imgs/Cyber_Dream/b16374c3be0ae2906ffcf6f9eeb6ab2f.jpg',
+      'imgs/Cyber_Dream/b6a4be8d7ffd61cdcfde4db2b97baa83.jpg',
+      'imgs/Cyber_Dream/bf35e957ac979b55a8232418d0aeae57.jpg',
+      'imgs/Cyber_Dream/c7cd4dde24c8fcfeeddc73899a45c4b0.jpg',
+      'imgs/Cyber_Dream/ce6e32a1b0e199432945a9f4422feba7.jpg',
+      'imgs/Cyber_Dream/dd17f7fed0880776d6f363f47a1b4ace.jpg',
+      'imgs/Cyber_Dream/ddcc9ee3f0f91d472d99f71c0d8e511a.jpg',
+      'imgs/Cyber_Dream/df0d0e247072e7e3847a417f2a716620.jpg',
+      'imgs/Cyber_Dream/ece2699cdefc930e16b2f8325cc50fd0.jpg',
+      'imgs/Cyber_Dream/f971c54106397d8c4ce3b7ca1a63ec8d.jpg',
+    ],
+    'wanderlust': [
+      'imgs/wanderlust/09b075dd2be0bc09f4d3e62e47119233.jpg',
+      'imgs/wanderlust/0c8c143a5177db233c417e17db188e0f.jpg',
+      'imgs/wanderlust/18ccf04f7a0288b95fe471a4e36fe487.jpg',
+      'imgs/wanderlust/1f31141549feb9c06c69e53ccad09cc1.jpg',
+      'imgs/wanderlust/218b94b7471b0383449df2bdacb14ef2.jpg',
+      'imgs/wanderlust/231a533d5a1c7d764d00709fd7fb1085.jpg',
+      'imgs/wanderlust/29d3ab642d1b1ec2437e9ef2880bdbc5.jpg',
+      'imgs/wanderlust/5c72a14678c6457d25e4751d5a37ed0e.jpg',
+      'imgs/wanderlust/665d270d9f1e5096af29bd22bb0e1530.jpg',
+      'imgs/wanderlust/71d7e0511be74210fec8bb6dfb96a7ad.jpg',
+      'imgs/wanderlust/75d52d7ba742ea0899cd890417830ebb.jpg',
+      'imgs/wanderlust/a186582b3c2111fea6bc003779d1d2e9.jpg',
+      'imgs/wanderlust/a69971e14d829ddc4fadb02b10eede7d.jpg',
+      'imgs/wanderlust/b01813e0e62bb7ed80ab2e8599614f4d.jpg',
+      'imgs/wanderlust/b085ce9ceddb4177eb931d188c720575.jpg',
+      'imgs/wanderlust/c281894392e9fd1d065de136c1ea59d7.jpg',
+      'imgs/wanderlust/cd0791521392fafe5abbdfb458757a2f.jpg',
+    ],
+  };
+
+  static const moodTextSets = {
+    'manifestation': [
+      ('BOSS ERA', CardStyle.neon, 0xFFF5F0E8, 0xFFFF6EC7),
+      ('MAKE IT HAPPEN', CardStyle.hologram, 0xFFF5F0E8, 0xFFFFFFFF),
+      ('MAIN CHARACTER', CardStyle.bubble, 0xFFF0ECD8, 0xFFFFFFFF),
+      ('BIG MOVES ONLY', CardStyle.glitch, 0xFFEAEAEA, 0xFFFFFFFF),
+      ('LEVEL UP', CardStyle.retro, 0xFFF5EFD6, 0xFFFFD700),
+      (
+        "i'm in love\nwith my future.",
+        CardStyle.handwritten,
+        0xFFF5F0E8,
+        0xFFFFFFFF,
+      ),
+      ('SHE WINS.', CardStyle.chrome, 0xFFEDE8D0, 0xFFFFFFFF),
+      ('DREAM BIG', CardStyle.rainbow, 0xFFF5F0E8, 0xFFFFFFFF),
+    ],
+    'soft_life': [
+      (
+        'slow down,\nit\'s okay.',
+        CardStyle.handwritten,
+        0xFFF7EFE5,
+        0xFF3D2314,
+      ),
+      ('rest is\nproductive.', CardStyle.torn, 0xFFF0E4D0, 0xFF3D2314),
+      ('joy is enough.', CardStyle.lined, 0xFFF7EFE5, 0xFF3D2314),
+      ('nourish &\nflourish.', CardStyle.handwritten, 0xFFEDE0D0, 0xFF3D2314),
+      ('SELF CARE\nFIRST', CardStyle.stamp, 0xFFD4956A, 0xFFF7EFE5),
+      (
+        'peace over\neverything.',
+        CardStyle.handwritten,
+        0xFFF7EFE5,
+        0xFF3D2314,
+      ),
+      ('HEALING ERA', CardStyle.textOnly, 0xFFF7EFE5, 0xFFD4956A),
+      ('choose gentle.', CardStyle.tornMore, 0xFFEDE0D0, 0xFF3D2314),
+    ],
+    'that_girl': [
+      ('05:30', CardStyle.stamp, 0xFF080808, 0xFFC8A97E),
+      ('DISCIPLINE', CardStyle.outline, 0xFF080808, 0xFFFFFFFF),
+      ('HUSTLE', CardStyle.chrome, 0xFF080808, 0xFFFFFFFF),
+      ('DEBT FREE', CardStyle.textOnly, 0xFF080808, 0xFFFFFFFF),
+      ('I AM THAT GIRL', CardStyle.stamp, 0xFF080808, 0xFFC8A97E),
+      ('FINANCIALLY\nFREE', CardStyle.outline, 0xFF080808, 0xFFFFFFFF),
+      ('show up\nevery day.', CardStyle.torn, 0xFF222222, 0xFFFFFFFF),
+      (
+        'discipline\nis self love.',
+        CardStyle.handwritten,
+        0xFF111111,
+        0xFFFFFFFF,
+      ),
+    ],
+    'cyber_dream': [
+      ('NO ONE CAN\nSAVE YOU\nBUT ME', CardStyle.neon, 0xFF0d0520, 0xFFFF2D9E),
+      ('ENTER\nTHE VOID', CardStyle.glitch, 0xFF0d0520, 0xFF00F5FF),
+      ('GLITCH\nTHE SYSTEM', CardStyle.bubble, 0xFF0d0520, 0xFFE8B4FF),
+      ('UNPLUG.\nRESET.', CardStyle.neon, 0xFF0d0520, 0xFFFF2D9E),
+      ('BEYOND\nLIMITS', CardStyle.glitch, 0xFF0d0520, 0xFF00F5FF),
+      ('DREAM IN\nPIXELS', CardStyle.hologram, 0xFF0d0520, 0xFFE8B4FF),
+      ('LIVE IN NEON', CardStyle.neon, 0xFF0d0520, 0xFFFF2D9E),
+      ('CTRL+ALT\n+MANIFEST', CardStyle.outline, 0xFF0d0520, 0xFF00F5FF),
+    ],
+    'wanderlust': [
+      ('to travel\nis to live.', CardStyle.retro, 0xFF0E2A3A, 0xFF6BAED6),
+      ('FLOW', CardStyle.torn, 0xFF1A3D5C, 0xFFE8F4FD),
+      ('just start.', CardStyle.textOnly, 0xFF0E2A3A, 0xFFE8F4FD),
+      ('DREAM BIG,\nWORK HARD', CardStyle.outline, 0xFF0E2A3A, 0xFF6BAED6),
+      ('2026', CardStyle.stamp, 0xFF1A3D5C, 0xFFC8A97E),
+      ('learn · grow\n· explore', CardStyle.retro, 0xFF0E2A3A, 0xFF6BAED6),
+      ('the world\nis yours.', CardStyle.handwritten, 0xFF1A3D5C, 0xFFE8F4FD),
+      ('NO LIMITS', CardStyle.torn, 0xFF0E2A3A, 0xFFE8F4FD),
+    ],
+  };
+
+  static final moodBackgrounds = {
+    'manifestation': BoardBackground(
+      type: BgType.gradient,
+      color1: 0xFF12001f,
+      color2: 0xFF0a0a0a,
+      color3: 0xFF1a0a2e,
+      useColor3: true,
+    ),
+    'soft_life': BoardBackground(
+      type: BgType.dots,
+      color1: 0xFFF7EFE5,
+      color2: 0xFFD4C4B0,
+      patternSize: 22,
+    ),
+    'that_girl': BoardBackground(
+      type: BgType.grid,
+      color1: 0xFF080808,
+      color2: 0xFF1e1e1e,
+      patternSize: 28,
+    ),
+    'cyber_dream': BoardBackground(
+      type: BgType.gradient,
+      color1: 0xFF0d0520,
+      color2: 0xFF0a1a33,
+      color3: 0xFF1a0533,
+      useColor3: true,
+    ),
+    'wanderlust': BoardBackground(
+      type: BgType.lines,
+      color1: 0xFF0E2A3A,
+      color2: 0xFF1A3D5C,
+      patternSize: 28,
+    ),
+  };
+
+  // ★ 배경 이미지 - 네가 준 파일명 그대로
+  static const moodBgImages = {
+    'manifestation': [
+      'background/Manifestation/background4.png',
+      'background/Manifestation/background6.jpg',
+      'background/Manifestation/background7.jpg',
+    ],
+    'soft_life': ['background/soft_life/background8.jpg'],
+    'that_girl': ['background/That_Girl/a45377159b7125d0814865662b707503.jpg'],
+    'cyber_dream': [
+      'background/Cyber_Dream/07d9b0f903868b69fcaf527d4bd15bdb.jpg',
+      'background/Cyber_Dream/background9.jpg',
+      'background/Cyber_Dream/background10.jpg',
+      'background/Cyber_Dream/background11.jpg',
+      'background/Cyber_Dream/background12.jpg',
+      'background/Cyber_Dream/background13.jpg',
+      'background/Cyber_Dream/background14.jpg',
+    ],
+    'wanderlust': [
+      'background/wanderlust/background1.jpg',
+      'background/wanderlust/background2.jpg',
+      'background/wanderlust/background3.jpg',
+      'background/wanderlust/background5.jpg',
+    ],
+  };
 
   @override
   void initState() {
@@ -559,6 +814,15 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     _floatController.dispose();
     _neonController.dispose();
     super.dispose();
+  }
+
+  void _updateFloatSpeed() {
+    final duration = Duration(
+      milliseconds: (_floatSpeedSeconds * 1000).round(),
+    );
+    _floatController.stop();
+    _floatController.duration = duration;
+    _floatController.repeat(reverse: true);
   }
 
   void _initFloatOffsets() {
@@ -714,7 +978,239 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     );
   }
 
-  // ★ 배경 이미지 선택
+  void _showMoodDialog() {
+    final moods = [
+      {
+        'key': 'manifestation',
+        'label': '✨ Manifestation',
+        'desc': '야망 · 성공 · 드라마틱',
+      },
+      {'key': 'soft_life', 'label': '🌿 Soft Life', 'desc': '힐링 · 여유 · 따뜻함'},
+      {'key': 'that_girl', 'label': '💪 That Girl', 'desc': '규율 · 성장 · 미니멀'},
+      {
+        'key': 'cyber_dream',
+        'label': '🌀 Cyber Dream',
+        'desc': '사이버 · 미래 · 비현실',
+      },
+      {'key': 'wanderlust', 'label': '🌍 Wanderlust', 'desc': '여행 · 자유 · 클래식'},
+    ];
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1a1a1a),
+        title: const Text(
+          'Choose Your Mood',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: moods
+              .map(
+                (mood) => GestureDetector(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _applyMood(mood['key']!);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white.withOpacity(0.15)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                mood['label']!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                mood['desc']!,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.grey,
+                          size: 12,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _applyMood(String moodKey) {
+    final rng = Random(DateTime.now().millisecondsSinceEpoch);
+    final screenW = MediaQuery.of(context).size.width;
+    final screenH = MediaQuery.of(context).size.height;
+    final newCards = <BoardCard>[];
+    final placedRects = <Rect>[];
+
+    final images = moodKey == 'manifestation'
+        ? defaultImages
+        : (moodImages[moodKey] ?? defaultImages);
+    final shuffled = [...images]..shuffle(rng);
+    final useImages = shuffled.take(min(shuffled.length, 20)).toList();
+
+    for (int i = 0; i < useImages.length; i++) {
+      final cwR = 0.08 + rng.nextDouble() * 0.06;
+      final chR = 0.08 + rng.nextDouble() * 0.06;
+      Offset? placed;
+      for (int attempt = 0; attempt < 300; attempt++) {
+        final xR = 0.01 + rng.nextDouble() * (0.98 - cwR);
+        final yR = 0.01 + rng.nextDouble() * (0.98 - chR);
+        final rect = Rect.fromLTWH(
+          xR * screenW,
+          yR * screenH,
+          cwR * screenW,
+          chR * screenW,
+        );
+        if (!placedRects.any((r) => _overlaps(r, rect))) {
+          placed = Offset(xR, yR);
+          placedRects.add(rect);
+          break;
+        }
+      }
+      placed ??= Offset(
+        0.01 + rng.nextDouble() * (0.98 - cwR),
+        0.01 + rng.nextDouble() * (0.98 - chR),
+      );
+      newCards.add(
+        BoardCard(
+          imageUrl: useImages[i],
+          xRatio: placed.dx,
+          yRatio: placed.dy,
+          widthRatio: cwR,
+          heightRatio: chR,
+          rotation: (rng.nextDouble() - 0.5) * 0.45,
+        ),
+      );
+    }
+
+    final textItems = moodTextSets[moodKey]!;
+    const txtCols = 4;
+    const txtRows = 2;
+    final zoneOrder = List.generate(txtCols * txtRows, (i) => i)..shuffle(rng);
+    for (int i = 0; i < textItems.length; i++) {
+      final (text, style, paperColor, textColor) = textItems[i];
+      final cwR = 0.10 + rng.nextDouble() * 0.05;
+      final chR = 0.07 + rng.nextDouble() * 0.04;
+      final zoneIdx = zoneOrder[i % zoneOrder.length];
+      final zoneLeft = (zoneIdx % txtCols) / txtCols;
+      final zoneTop = (zoneIdx ~/ txtCols) / txtRows;
+      final zoneW = 1.0 / txtCols;
+      final zoneH = 1.0 / txtRows;
+      Offset? placed;
+      for (int attempt = 0; attempt < 500; attempt++) {
+        final xR =
+            zoneLeft +
+            0.01 +
+            rng.nextDouble() * (zoneW - cwR - 0.01).clamp(0, 1.0);
+        final yR =
+            zoneTop +
+            0.01 +
+            rng.nextDouble() * (zoneH - chR - 0.01).clamp(0, 1.0);
+        final rect = Rect.fromLTWH(
+          xR * screenW,
+          yR * screenH,
+          cwR * screenW,
+          chR * screenW,
+        );
+        if (!placedRects.any((r) => _overlaps(r, rect))) {
+          placed = Offset(xR, yR);
+          placedRects.add(rect);
+          break;
+        }
+      }
+      placed ??= Offset(zoneLeft + 0.01, zoneTop + 0.01);
+      newCards.add(
+        BoardCard(
+          text: text,
+          xRatio: placed.dx,
+          yRatio: placed.dy,
+          widthRatio: cwR,
+          heightRatio: chR,
+          rotation: (rng.nextDouble() - 0.5) * 0.35,
+          style: style,
+          paperColor: paperColor,
+          textColor: textColor,
+        ),
+      );
+    }
+
+    final bgImageList = moodBgImages[moodKey] ?? [];
+    final randomBgAsset = bgImageList.isNotEmpty
+        ? bgImageList[rng.nextInt(bgImageList.length)]
+        : null;
+    BoardBackground newBg;
+    if (randomBgAsset != null) {
+      newBg = BoardBackground(
+        type: BgType.image,
+        imageAsset: randomBgAsset,
+        color1: 0xFF0a0a0a,
+      );
+    } else {
+      final fallback = moodBackgrounds[moodKey]!;
+      newBg = BoardBackground(
+        type: fallback.type,
+        color1: fallback.color1,
+        color2: fallback.color2,
+        color3: fallback.color3,
+        useColor3: fallback.useColor3,
+        patternSize: fallback.patternSize,
+      );
+    }
+
+    setState(() {
+      cards = newCards;
+      background = newBg;
+      selectedIndex = null;
+      _animStarted = false;
+      _currentMood = moodKey;
+    });
+    _initFloatOffsets();
+    _updateFloatSpeed();
+    _saveBoard();
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) _startIntroAnimation();
+    });
+  }
+
   Future<String?> _pickBgImage() async {
     final result = await FilePicker.pickFiles(
       type: FileType.image,
@@ -758,17 +1254,14 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // ★ 이미지 업로드 버튼
                   GestureDetector(
                     onTap: () async {
                       final b64 = await _pickBgImage();
-                      if (b64 != null) {
+                      if (b64 != null)
                         setDialogState(() {
                           selectedType = BgType.image;
                           selectedImageBase64 = b64;
                         });
-                      }
                     },
                     child: Container(
                       height: 48,
@@ -806,8 +1299,6 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       ),
                     ),
                   ),
-
-                  // 이미지 선택 시 제거 버튼
                   if (selectedType == BgType.image &&
                       selectedImageBase64 != null) ...[
                     const SizedBox(height: 8),
@@ -816,11 +1307,11 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                         selectedType = BgType.solid;
                         selectedImageBase64 = null;
                       }),
-                      child: Row(
+                      child: const Row(
                         children: [
-                          const Icon(Icons.close, color: Colors.grey, size: 14),
-                          const SizedBox(width: 4),
-                          const Text(
+                          Icon(Icons.close, color: Colors.grey, size: 14),
+                          SizedBox(width: 4),
+                          Text(
                             'Remove image',
                             style: TextStyle(color: Colors.grey, fontSize: 12),
                           ),
@@ -828,10 +1319,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       ),
                     ),
                   ],
-
                   const SizedBox(height: 16),
-
-                  // 프리셋
                   const Text(
                     'Presets',
                     style: TextStyle(color: Colors.grey, fontSize: 12),
@@ -843,8 +1331,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       scrollDirection: Axis.horizontal,
                       itemCount: bgPresets.length,
                       itemBuilder: (ctx, i) {
-                        final preset = bgPresets[i];
-                        final presetBg = preset['bg'] as BoardBackground;
+                        final presetBg = bgPresets[i]['bg'] as BoardBackground;
                         return GestureDetector(
                           onTap: () => setDialogState(() {
                             selectedType = presetBg.type;
@@ -878,8 +1365,6 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 타입 선택 (image 제외)
                   if (selectedType != BgType.image) ...[
                     const Text(
                       'Pattern',
@@ -923,8 +1408,6 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                           .toList(),
                     ),
                     const SizedBox(height: 16),
-
-                    // 색상 선택
                     Row(
                       children: [
                         Expanded(
@@ -1119,7 +1602,6 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                         ],
                       ],
                     ),
-
                     if (selectedType != BgType.solid &&
                         selectedType != BgType.gradient) ...[
                       const SizedBox(height: 16),
@@ -1156,8 +1638,6 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       ),
                     ],
                   ],
-
-                  // 미리보기
                   const SizedBox(height: 16),
                   const Text(
                     'Preview',
@@ -1191,7 +1671,6 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                             ),
                     ),
                   ),
-
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -1283,8 +1762,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     final screenH = MediaQuery.of(context).size.height;
     final placedRects = <Rect>[];
     final newCards = <BoardCard>[];
-
-    const centerImgPath = 'imgs/87c88cb11e2f37df0fd2b4134692dbf2.jpg';
+    const centerImgPath =
+        'imgs/Manifestation/87c88cb11e2f37df0fd2b4134692dbf2.jpg';
     const centerWR = 0.18;
     const centerHR = 0.18;
     final centerXR = (1.0 - centerWR) / 2;
@@ -1297,14 +1776,12 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         centerHR * screenW,
       ),
     );
-
     final topForced = [
       Offset(rng.nextDouble() * 0.25, 0.01 + rng.nextDouble() * 0.12),
       Offset(0.25 + rng.nextDouble() * 0.25, 0.01 + rng.nextDouble() * 0.12),
       Offset(0.5 + rng.nextDouble() * 0.25, 0.01 + rng.nextDouble() * 0.12),
       Offset(0.75 + rng.nextDouble() * 0.2, 0.01 + rng.nextDouble() * 0.12),
     ];
-
     int topCount = 0;
     for (final img in defaultImages) {
       if (img == centerImgPath) continue;
@@ -1363,23 +1840,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         rotation: 0,
       ),
     );
-
-    final textItems = [
-      ('DREAM BIG', CardStyle.neon, 0xFFF5F0E8, 0xFFFF6EC7),
-      ('ANTHROPIC', CardStyle.hologram, 0xFFF5F0E8, 0xFFFFFFFF),
-      ('AI & ETHICS', CardStyle.bubble, 0xFFF0ECD8, 0xFFFFFFFF),
-      ('NO BORDERS', CardStyle.glitch, 0xFFEAEAEA, 0xFFFFFFFF),
-      ('ANGEL INVESTOR', CardStyle.retro, 0xFFF5EFD6, 0xFFFFD700),
-      (
-        "i'm in love\nwith my future.",
-        CardStyle.handwritten,
-        0xFFF5F0E8,
-        0xFFFFFFFF,
-      ),
-      ('INVEST.\nGROW.\nREPEAT.', CardStyle.chrome, 0xFFEDE8D0, 0xFFFFFFFF),
-      ('SHE WINS.', CardStyle.rainbow, 0xFFF5F0E8, 0xFFFFFFFF),
-    ];
-
+    final textItems = moodTextSets['manifestation']!;
     const txtCols = 4;
     const txtRows = 2;
     final zoneOrder = List.generate(txtCols * txtRows, (i) => i)
@@ -1866,9 +2327,11 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                 selectedIndex = null;
                 _animStarted = false;
                 background = BoardBackground();
+                _currentMood = 'manifestation';
               });
               _generateDefaultBoard();
               _initFloatOffsets();
+              _updateFloatSpeed();
               Future.delayed(const Duration(milliseconds: 300), () {
                 if (mounted) _startIntroAnimation();
               });
@@ -1979,6 +2442,185 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     ];
   }
 
+  Widget _buildBackground() {
+    if (background.type == BgType.image) {
+      if (background.imageBase64 != null)
+        return Image.memory(
+          base64Decode(background.imageBase64!),
+          fit: BoxFit.cover,
+        );
+      if (background.imageAsset != null)
+        return Image.asset(background.imageAsset!, fit: BoxFit.cover);
+    }
+    return CustomPaint(painter: BackgroundPainter(background));
+  }
+
+  // ★ 무드별 완전 다른 인트로 애니메이션 계산
+  Map<String, double> _calcIntroValues(
+    int index,
+    int total,
+    double animValue,
+    double screenW,
+    double screenH,
+    BoardCard card,
+  ) {
+    final floatOffset = index < _floatOffsets.length
+        ? _floatOffsets[index]
+        : 0.0;
+
+    switch (_currentMood) {
+      // ✨ Manifestation: 사방에서 날아와서 쾅 박히는 느낌
+      case 'manifestation':
+        {
+          final progress = total <= 1 ? 0.0 : index / (total - 1);
+          final delay = (progress * 0.6).clamp(0.0, 0.6);
+          final end = (delay + 0.35).clamp(delay + 0.01, 1.0);
+          final t = ((animValue - delay) / (end - delay)).clamp(0.0, 1.0);
+          final curved = _StickerCurve().transform(t);
+          final angle = floatOffset * 2 - pi; // 사방에서 날아오는 방향
+          final dist = (1.0 - curved) * 400.0;
+          return {
+            'opacity': Curves.easeIn.transform(t.clamp(0.0, 1.0)),
+            'scale': curved.clamp(0.0, 1.3),
+            'dx': cos(angle) * dist,
+            'dy': sin(angle) * dist,
+            'rotate':
+                card.rotation + (1.0 - curved) * (index.isEven ? 0.5 : -0.5),
+          };
+        }
+
+      // 🌿 Soft Life: 위에서 천천히 낙엽처럼 떨어지는 느낌
+      case 'soft_life':
+        {
+          final progress = total <= 1 ? 0.0 : index / (total - 1);
+          final delay = (progress * 0.7).clamp(0.0, 0.7);
+          final end = (delay + 0.3).clamp(delay + 0.01, 1.0);
+          final t = ((animValue - delay) / (end - delay)).clamp(0.0, 1.0);
+          final curved = Curves.easeInOutSine.transform(t);
+          final fallDist = (1.0 - curved) * 300.0;
+          final sway = sin(t * pi * 2 + floatOffset) * 20.0 * (1.0 - curved);
+          return {
+            'opacity': t < 0.3 ? t / 0.3 : 1.0,
+            'scale': 0.7 + curved * 0.3,
+            'dx': sway,
+            'dy': -fallDist,
+            'rotate': card.rotation + (1.0 - curved) * sin(floatOffset) * 0.15,
+          };
+        }
+
+      // 💪 That Girl: 좌→우 순서대로 딱딱 나타남
+      case 'that_girl':
+        {
+          // 격자 위치 기반으로 열 순서 계산
+          final col = (card.xRatio * 4).floor().clamp(0, 3);
+          final row = (card.yRatio * 3).floor().clamp(0, 2);
+          final order = row * 4 + col;
+          final delay = (order / 12.0 * 0.7).clamp(0.0, 0.7);
+          final end = (delay + 0.15).clamp(delay + 0.01, 1.0);
+          final t = ((animValue - delay) / (end - delay)).clamp(0.0, 1.0);
+          final curved = Curves.easeOutCubic.transform(t);
+          return {
+            'opacity': curved,
+            'scale': 0.85 + curved * 0.15,
+            'dx': 0.0,
+            'dy': 0.0,
+            'rotate': card.rotation,
+          };
+        }
+
+      // 🌀 Cyber Dream: 위치가 막 튀었다가 글리치처럼 안착
+      case 'cyber_dream':
+        {
+          final progress = total <= 1 ? 0.0 : index / (total - 1);
+          final delay = (progress * 0.4).clamp(0.0, 0.4);
+          final end = (delay + 0.5).clamp(delay + 0.01, 1.0);
+          final t = ((animValue - delay) / (end - delay)).clamp(0.0, 1.0);
+
+          // 글리치: t 구간별로 위치가 튐
+          double glitchX = 0.0;
+          double glitchY = 0.0;
+          double glitchOpacity = 0.0;
+
+          if (t < 0.15) {
+            // 처음엔 안 보임
+            glitchOpacity = 0.0;
+          } else if (t < 0.3) {
+            // 1차 글리치 - 엉뚱한 위치에 잠깐 나타남
+            glitchOpacity = 0.7;
+            glitchX = sin(floatOffset * 5) * 120.0;
+            glitchY = cos(floatOffset * 3) * 80.0;
+          } else if (t < 0.45) {
+            // 잠깐 사라짐
+            glitchOpacity = 0.2;
+            glitchX = -sin(floatOffset * 4) * 60.0;
+            glitchY = cos(floatOffset * 2) * 40.0;
+          } else if (t < 0.6) {
+            // 2차 글리치 - 다른 위치에 나타남
+            glitchOpacity = 0.9;
+            glitchX = cos(floatOffset * 3) * 40.0;
+            glitchY = sin(floatOffset * 5) * 30.0;
+          } else {
+            // 제자리에 안착
+            final settle = Curves.easeOutExpo.transform((t - 0.6) / 0.4);
+            glitchOpacity = settle;
+            glitchX = cos(floatOffset * 3) * 40.0 * (1.0 - settle);
+            glitchY = sin(floatOffset * 5) * 30.0 * (1.0 - settle);
+          }
+
+          return {
+            'opacity': glitchOpacity,
+            'scale': t < 0.6
+                ? 0.9
+                : (0.9 + Curves.easeOutExpo.transform((t - 0.6) / 0.4) * 0.1),
+            'dx': glitchX,
+            'dy': glitchY,
+            'rotate': card.rotation + (t < 0.6 ? sin(t * pi * 6) * 0.1 : 0.0),
+          };
+        }
+
+      // 🌍 Wanderlust: 아래에서 안개처럼 서서히 떠오름
+      case 'wanderlust':
+        {
+          final progress = total <= 1 ? 0.0 : index / (total - 1);
+          final delay = (progress * 0.65).clamp(0.0, 0.65);
+          final end = (delay + 0.35).clamp(delay + 0.01, 1.0);
+          final t = ((animValue - delay) / (end - delay)).clamp(0.0, 1.0);
+          final curved = Curves.easeOutQuart.transform(t);
+
+          // 아래에서 위로 떠오름 + 페이드인
+          final riseDist = (1.0 - curved) * 150.0;
+          // 살짝 좌우 흔들림 (바람 느낌)
+          final sway = sin(t * pi * 1.5 + floatOffset) * 12.0 * (1.0 - curved);
+
+          return {
+            'opacity': t < 0.4 ? Curves.easeIn.transform(t / 0.4) : 1.0,
+            'scale': 0.85 + curved * 0.15,
+            'dx': sway,
+            'dy': riseDist, // 양수 = 아래에서 시작 → 위로
+            'rotate': card.rotation + (1.0 - curved) * sin(floatOffset) * 0.1,
+          };
+        }
+
+      default:
+        {
+          final progress = total <= 1 ? 0.0 : index / (total - 1);
+          final delay = (progress * 0.65).clamp(0.0, 0.65);
+          final end = (delay + 0.3).clamp(delay + 0.01, 1.0);
+          final t = ((animValue - delay) / (end - delay)).clamp(0.0, 1.0);
+          final curved = _StickerCurve().transform(t);
+          return {
+            'opacity': Curves.easeIn.transform(t.clamp(0.0, 1.0)),
+            'scale': curved.clamp(0.0, 1.3),
+            'dx': 0.0,
+            'dy': 0.0,
+            'rotate':
+                card.rotation +
+                (1.0 - t.clamp(0.0, 1.0)) * (index.isEven ? 0.2 : -0.2),
+          };
+        }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading)
@@ -2006,21 +2648,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     height: screenH,
                     child: Stack(
                       children: [
-                        // ★ 배경 - 이미지 or 패턴/색
-                        Positioned.fill(
-                          child:
-                              background.type == BgType.image &&
-                                  background.imageBase64 != null
-                              ? Image.memory(
-                                  base64Decode(background.imageBase64!),
-                                  fit: BoxFit.cover,
-                                )
-                              : CustomPaint(
-                                  painter: BackgroundPainter(background),
-                                ),
-                        ),
-
-                        // 카드들
+                        Positioned.fill(child: _buildBackground()),
                         AnimatedBuilder(
                           animation: Listenable.merge([
                             _introController,
@@ -2036,48 +2664,41 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                 final py = card.y(screenH);
                                 final pw = card.width(screenW);
                                 final ph = card.height(screenW);
-
                                 final total = cards.length.clamp(1, 9999);
-                                final progress = total <= 1
-                                    ? 0.0
-                                    : index / (total - 1);
-                                final delay = (progress * 0.65).clamp(
-                                  0.0,
-                                  0.65,
-                                );
-                                final end = (delay + 0.3).clamp(
-                                  delay + 0.01,
-                                  1.0,
-                                );
-                                final introAnim = CurvedAnimation(
-                                  parent: _introController,
-                                  curve: Interval(
-                                    delay,
-                                    end,
-                                    curve: _stickerCurve,
-                                  ),
-                                );
-                                final introVal = introAnim.value.clamp(
-                                  0.0,
-                                  1.2,
-                                );
-                                final opacity = Curves.easeIn.transform(
-                                  introVal.clamp(0.0, 1.0),
-                                );
-                                final introRotation =
-                                    (1.0 - introVal.clamp(0.0, 1.0)) *
-                                    (index.isEven ? 0.2 : -0.2);
-
                                 final floatOffset = index < _floatOffsets.length
                                     ? _floatOffsets[index]
                                     : 0.0;
+
+                                // ★ 무드별 인트로 값 계산
+                                final iv = _calcIntroValues(
+                                  index,
+                                  total,
+                                  _introController.value,
+                                  screenW,
+                                  screenH,
+                                  card,
+                                );
+                                final opacity = (iv['opacity']! as double)
+                                    .clamp(0.0, 1.0);
+                                final scale = (iv['scale']! as double).clamp(
+                                  0.0,
+                                  1.5,
+                                );
+                                final introDx = iv['dx']! as double;
+                                final introDy = iv['dy']! as double;
+                                final introRotate = iv['rotate']! as double;
+
+                                // 플로팅 (인트로 끝난 후)
+                                final introProgress = _introController.value;
+                                final floatBlend = opacity.clamp(0.0, 1.0);
                                 final floatY = isSelected
                                     ? 0.0
                                     : sin(
                                             _floatController.value * pi +
                                                 floatOffset,
                                           ) *
-                                          4.0;
+                                          _floatAmplitude *
+                                          floatBlend;
                                 final floatRot = isSelected
                                     ? 0.0
                                     : sin(
@@ -2085,19 +2706,22 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                                 floatOffset +
                                                 1.0,
                                           ) *
-                                          0.008;
+                                          0.008 *
+                                          floatBlend;
+
+                                // 네온 깜빡임
                                 final neonFlicker = card.style == CardStyle.neon
-                                    ? 0.6 +
+                                    ? _neonIntensityBase +
                                           sin(
                                                 _neonController.value * pi * 2 +
                                                     floatOffset,
                                               ) *
-                                              0.4
+                                              (1.0 - _neonIntensityBase)
                                     : 1.0;
 
                                 return Positioned(
-                                  left: px,
-                                  top: py + floatY,
+                                  left: px + introDx,
+                                  top: py + introDy + floatY,
                                   child: GestureDetector(
                                     behavior: HitTestBehavior.opaque,
                                     onTap: () => setState(
@@ -2124,14 +2748,11 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                     },
                                     onPanEnd: (_) => _saveBoard(),
                                     child: Opacity(
-                                      opacity: opacity.clamp(0.0, 1.0),
+                                      opacity: opacity,
                                       child: Transform.scale(
-                                        scale: introVal.clamp(0.0, 1.3),
+                                        scale: scale,
                                         child: Transform.rotate(
-                                          angle:
-                                              card.rotation +
-                                              introRotation +
-                                              floatRot,
+                                          angle: introRotate + floatRot,
                                           child:
                                               card.imageUrl != null ||
                                                   card.imageBase64 != null
@@ -2178,6 +2799,12 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      _toolbarButton(
+                        Icons.auto_awesome,
+                        'Mood',
+                        _showMoodDialog,
+                      ),
+                      const SizedBox(width: 10),
                       _toolbarButton(Icons.upload_file, 'Upload', _pickImage),
                       const SizedBox(width: 10),
                       _toolbarButton(
@@ -2279,6 +2906,14 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                 card.imageUrl!,
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
+                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                  if (wasSynchronouslyLoaded || frame != null) return child;
+                  return AnimatedOpacity(
+                    opacity: frame == null ? 0.0 : 1.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: child,
+                  );
+                },
               ),
       ),
     );
@@ -2391,7 +3026,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         height: h,
         child: Center(
           child: Opacity(
-            opacity: neonFlicker.clamp(0.4, 1.0),
+            opacity: neonFlicker.clamp(0.15, 1.0),
             child: Text(
               text,
               textAlign: TextAlign.center,
