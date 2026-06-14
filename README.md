@@ -1,12 +1,26 @@
-# Vision Board ✨
+# VISIONBOARD ✨
 
-A personal vision board web app built with Flutter Web. Images and text cards are scattered across the screen in a collage style — fully interactive and persistent.
+A personal vision board web app built with Flutter Web, styled as a retro handheld game console. Images and text cards are scattered across the screen in a collage style — fully interactive and persistent.
 
 Built as a side project to learn Flutter, coming from a Python/AI background.
 
 ---
 
 ## Features
+
+### Game Console UI (NEW in v1.5)
+- Entire screen wrapped in a handheld console frame — header bar, screen bezel, button panel
+- Console colors fully re-skin per mood (device body, screen border, button colors, accent, text)
+- Top header: console logo, current mood badge, selected card indicator, blinking LED
+- Bottom panel: mood-select buttons + D-PAD + action buttons (UPLOAD / TEXT / BG / SAVE / PNG / RESET)
+- 3D physical buttons — layered surface + side faces, surface depresses on press via `AnimatedPositioned`
+- 3D D-PAD — moves the selected card by small increments per tap
+
+### Card Selection — Spotlight + Focus
+- Tapping a card dims all other cards (~65% darker) to spotlight the selection
+- Selected card scales up slightly with an accent-colored glow border
+- Edit handles (move/resize/rotate/delete/reorder) appear around the selected card
+- D-PAD nudges the selected card's position without dragging
 
 ### Board
 - Polaroid-style photo cards with random sizes and rotations
@@ -18,7 +32,7 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 
 ### Mood System
 - 5 mood themes: ✨ Manifestation, 🌿 Soft Life, 💪 That Girl, 🌀 Cyber Dream, 🌍 Wanderlust
-- Each mood applies matching images, text cards, effects, colors, and background in one tap
+- Each mood applies matching images, text cards, effects, colors, console skin, and background in one tap
 - Random background image selected from a per-mood asset pool on each apply
 - Per-mood intro animations — each mood feels completely different on load
 - Per-mood floating speed and neon flicker intensity
@@ -34,7 +48,8 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 
 ### Editing
 - **Drag** any card to reposition
-- **Tap** to select — shows edit handles
+- **Tap** to select — spotlight effect + edit handles
+- **D-PAD** to nudge the selected card
 - **Double tap** text cards to edit content, style, and color
 - **Resize** cards by dragging the bottom-right handle
 - **Rotate** cards by dragging the bottom-left handle
@@ -58,7 +73,8 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 - Per-mood intro animations — 5 distinct styles
 - Floating ambient animation — speed and amplitude vary by mood
 - Neon flicker — intensity varies by mood (Cyber Dream flickers most aggressively)
-- 3 animation controllers total — no lag
+- Spotlight + select-scale animations for card focus
+- 5 animation controllers total — no lag
 
 ### Export
 - Export board as high-quality PNG (2x pixel ratio) via browser download
@@ -156,13 +172,23 @@ Vision-Board-/
 - [x] Random background image selection from mood asset pool
 - [x] Asset-based background image support alongside user-uploaded images
 
-### v1.5 — Next
+### v1.5 — Done
+- [x] Full game console UI — header, screen bezel, button panel (re-skins per mood)
+- [x] 3D physical buttons with press animation (layered surface + side, `AnimatedPositioned`)
+- [x] 3D D-PAD for nudging selected card position
+- [x] Card selection spotlight (dim other cards) + select-scale + glow border
+- [x] App renamed to VISIONBOY
+
+### v1.6 — Next
+- [ ] Console "glow" polish — screen shimmer/shine effect, more 3D depth on bezel and buttons
+- [ ] Floating decorative elements (bubbles drifting across the screen)
+- [ ] Per-mood button depth variation (e.g. That Girl = shallow/minimal, Cyber Dream = deep/strong)
 - [ ] Quiz flow → mood result → board generation
 - [ ] Tap card to zoom in
+
+### v1.7 — Future
 - [ ] State management with Riverpod
 - [ ] Multiple boards
-
-### v1.6 — Future
 - [ ] Firebase storage for images
 - [ ] Firebase Auth (personal board per user)
 - [ ] Background music per mood
@@ -186,6 +212,7 @@ Vision-Board-/
 - `dart:html` for browser download
 - Ratio-based layout for window resize support
 - Per-mood animation system with distinct intro styles
+- Layered `Stack` + `AnimatedPositioned` for 3D button press effects
 
 ---
 
