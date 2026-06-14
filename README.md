@@ -1,6 +1,6 @@
-# VISIONBOARD ✨
+# Vision Board ✨
 
-A personal vision board web app built with Flutter Web, styled as a retro handheld game console. Images and text cards are scattered across the screen in a collage style — fully interactive and persistent.
+A personal vision board web app built with Flutter Web. Images and text cards are scattered across the screen in a collage style — fully interactive and persistent. The board lives inside a retro handheld game console frame.
 
 Built as a side project to learn Flutter, coming from a Python/AI background.
 
@@ -177,7 +177,7 @@ Vision-Board-/
 - [x] 3D physical buttons with press animation (layered surface + side, `AnimatedPositioned`)
 - [x] 3D D-PAD for nudging selected card position
 - [x] Card selection spotlight (dim other cards) + select-scale + glow border
-- [x] App renamed to VISIONBOY
+- [x] Game console UI added
 
 ### v1.6 — Next
 - [ ] Console "glow" polish — screen shimmer/shine effect, more 3D depth on bezel and buttons

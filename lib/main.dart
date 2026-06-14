@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'VISIONBOY',
+      title: 'Vision Board',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
@@ -450,17 +450,10 @@ class GameButton3D extends StatefulWidget {
 
 class _GameButton3DState extends State<GameButton3D> {
   bool _pressed = false;
-  static const _depth = 5.0; // ★ 3D 깊이
 
   @override
   Widget build(BuildContext context) {
-    final topColor = widget.isActive
-        ? widget.theme.accent
-        : widget.theme.buttonTop;
-    final sideColor = widget.isActive
-        ? widget.theme.accent.withOpacity(0.4)
-        : widget.theme.buttonSide;
-
+    final depth = _pressed ? 1.0 : 4.0; // ★ 눌렸을 때 깊이 변화
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) {
@@ -468,70 +461,59 @@ class _GameButton3DState extends State<GameButton3D> {
         widget.onTap();
       },
       onTapCancel: () => setState(() => _pressed = false),
-      child: SizedBox(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 60),
         width: widget.width,
-        height: widget.height + _depth,
-        child: Stack(
-          children: [
-            // ★ 측면 (바닥 레이어) - 항상 고정
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                height: widget.height,
-                decoration: BoxDecoration(
-                  color: sideColor,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: widget.theme.buttonBorder.withOpacity(0.6),
-                    width: 1,
+        height: widget.height,
+        decoration: BoxDecoration(
+          // ★ 3D 효과: 아래에 어두운 레이어로 측면 표현
+          color: widget.isActive ? widget.theme.accent : widget.theme.buttonTop,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: widget.isActive
+                ? widget.theme.accent
+                : widget.theme.buttonBorder,
+            width: 1.5,
+          ),
+          boxShadow: _pressed
+              ? [
+                  // 눌렸을 때: 그림자 없앰
+                  BoxShadow(
+                    color: widget.theme.buttonSide,
+                    offset: const Offset(0, 1),
+                    blurRadius: 0,
+                    spreadRadius: 0,
                   ),
-                ),
-              ),
+                ]
+              : [
+                  // 안 눌렸을 때: 아래에 두꺼운 그림자로 3D 느낌
+                  BoxShadow(
+                    color: widget.theme.buttonSide,
+                    offset: Offset(0, depth),
+                    blurRadius: 0,
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: widget.theme.buttonBorder.withOpacity(0.3),
+                    offset: Offset(0, depth + 1),
+                    blurRadius: 2,
+                  ),
+                ],
+        ),
+        // ★ 눌렸을 때 아래로 이동하는 느낌
+        transform: Matrix4.translationValues(0, _pressed ? 3 : 0, 0),
+        child: Center(
+          child: Text(
+            widget.label,
+            style: TextStyle(
+              color: widget.isActive
+                  ? widget.theme.deviceBg
+                  : widget.theme.textPrimary,
+              fontSize: widget.fontSize,
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.bold,
             ),
-            // ★ 표면 (위 레이어) - 눌리면 아래로 이동
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 60),
-              left: 0,
-              right: 0,
-              top: _pressed ? _depth : 0,
-              child: Container(
-                height: widget.height,
-                decoration: BoxDecoration(
-                  // ★ 표면에 위아래 그라디언트로 입체감
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      topColor.withOpacity(1.0),
-                      Color.lerp(topColor, Colors.black, 0.25)!,
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: widget.isActive
-                        ? widget.theme.accent
-                        : widget.theme.buttonBorder,
-                    width: 1.5,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    widget.label,
-                    style: TextStyle(
-                      color: widget.isActive
-                          ? widget.theme.deviceBg
-                          : widget.theme.textPrimary,
-                      fontSize: widget.fontSize,
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -557,7 +539,6 @@ class DPadButton3D extends StatefulWidget {
 
 class _DPadButton3DState extends State<DPadButton3D> {
   bool _pressed = false;
-  static const _depth = 4.0;
 
   @override
   Widget build(BuildContext context) {
@@ -568,54 +549,25 @@ class _DPadButton3DState extends State<DPadButton3D> {
         widget.onTap();
       },
       onTapCancel: () => setState(() => _pressed = false),
-      child: SizedBox(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 60),
         width: 24,
-        height: 24 + _depth,
-        child: Stack(
-          children: [
-            // 측면
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                height: 24,
-                decoration: BoxDecoration(
-                  color: widget.theme.buttonSide,
-                  border: Border.all(
-                    color: widget.theme.buttonBorder.withOpacity(0.5),
+        height: 24,
+        decoration: BoxDecoration(
+          color: widget.theme.buttonTop,
+          border: Border.all(color: widget.theme.buttonBorder),
+          boxShadow: _pressed
+              ? []
+              : [
+                  BoxShadow(
+                    color: widget.theme.buttonSide,
+                    offset: const Offset(0, 3),
+                    blurRadius: 0,
                   ),
-                ),
-              ),
-            ),
-            // 표면
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 60),
-              left: 0,
-              right: 0,
-              top: _pressed ? _depth : 0,
-              child: Container(
-                height: 24,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      widget.theme.buttonTop,
-                      Color.lerp(widget.theme.buttonTop, Colors.black, 0.3)!,
-                    ],
-                  ),
-                  border: Border.all(color: widget.theme.buttonBorder),
-                ),
-                child: Icon(
-                  widget.icon,
-                  color: widget.theme.textSecondary,
-                  size: 14,
-                ),
-              ),
-            ),
-          ],
+                ],
         ),
+        transform: Matrix4.translationValues(0, _pressed ? 2 : 0, 0),
+        child: Icon(widget.icon, color: widget.theme.textSecondary, size: 14),
       ),
     );
   }
@@ -1962,7 +1914,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           ),
           const SizedBox(width: 10),
           Text(
-            'VISIONBOY',
+            'VISION BOARD',
             style: TextStyle(
               color: _theme.accent,
               fontSize: 11,
