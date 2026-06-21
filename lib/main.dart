@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'dart:async';
 import 'dart:math';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -450,10 +451,17 @@ class GameButton3D extends StatefulWidget {
 
 class _GameButton3DState extends State<GameButton3D> {
   bool _pressed = false;
+  static const _depth = 5.0; // ★ 3D 깊이
 
   @override
   Widget build(BuildContext context) {
-    final depth = _pressed ? 1.0 : 4.0; // ★ 눌렸을 때 깊이 변화
+    final topColor = widget.isActive
+        ? widget.theme.accent
+        : widget.theme.buttonTop;
+    final sideColor = widget.isActive
+        ? widget.theme.accent.withOpacity(0.4)
+        : widget.theme.buttonSide;
+
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) {
@@ -461,63 +469,101 @@ class _GameButton3DState extends State<GameButton3D> {
         widget.onTap();
       },
       onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 60),
+      child: SizedBox(
         width: widget.width,
-        height: widget.height,
-        decoration: BoxDecoration(
-          // ★ 3D 효과: 아래에 어두운 레이어로 측면 표현
-          color: widget.isActive ? widget.theme.accent : widget.theme.buttonTop,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: widget.isActive
-                ? widget.theme.accent
-                : widget.theme.buttonBorder,
-            width: 1.5,
-          ),
-          boxShadow: _pressed
-              ? [
-                  // 눌렸을 때: 그림자 없앰
-                  BoxShadow(
-                    color: widget.theme.buttonSide,
-                    offset: const Offset(0, 1),
-                    blurRadius: 0,
-                    spreadRadius: 0,
+        height: widget.height + _depth,
+        child: Stack(
+          children: [
+            // ★ 측면 (바닥 레이어) - 항상 고정
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: widget.height,
+                decoration: BoxDecoration(
+                  color: sideColor,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: widget.theme.buttonBorder.withOpacity(0.6),
+                    width: 1,
                   ),
-                ]
-              : [
-                  // 안 눌렸을 때: 아래에 두꺼운 그림자로 3D 느낌
-                  BoxShadow(
-                    color: widget.theme.buttonSide,
-                    offset: Offset(0, depth),
-                    blurRadius: 0,
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: widget.theme.buttonBorder.withOpacity(0.3),
-                    offset: Offset(0, depth + 1),
-                    blurRadius: 2,
-                  ),
-                ],
-        ),
-        // ★ 눌렸을 때 아래로 이동하는 느낌
-        transform: Matrix4.translationValues(0, _pressed ? 3 : 0, 0),
-        child: Center(
-          child: Text(
-            widget.label,
-            style: TextStyle(
-              color: widget.isActive
-                  ? widget.theme.deviceBg
-                  : widget.theme.textPrimary,
-              fontSize: widget.fontSize,
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ),
+            // ★ 표면 (위 레이어) - 눌리면 아래로 이동
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 60),
+              left: 0,
+              right: 0,
+              top: _pressed ? _depth : 0,
+              child: Container(
+                height: widget.height,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      topColor,
+                      Color.lerp(topColor, Colors.black, 0.25)!,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: widget.isActive
+                        ? widget.theme.accent
+                        : widget.theme.buttonBorder,
+                    width: 1.5,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // ★ 미세한 스캔라인 텍스처 (레트로 기기 질감)
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: CustomPaint(painter: _ButtonScanlinePainter()),
+                      ),
+                    ),
+                    Center(
+                      child: Text(
+                        widget.label,
+                        style: TextStyle(
+                          color: widget.isActive
+                              ? widget.theme.deviceBg
+                              : widget.theme.textPrimary,
+                          fontSize: widget.fontSize,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+// ★ 버튼 표면용 미세 스캔라인 텍스처 (가벼운 레트로 질감)
+class _ButtonScanlinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.black.withOpacity(0.08);
+    for (double y = 1; y < size.height; y += 2.5) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+    // 상단에 살짝 밝은 하이라이트 줄 (광택 느낌)
+    final highlight = Paint()..color = Colors.white.withOpacity(0.10);
+    canvas.drawLine(Offset(0, 1), Offset(size.width, 1), highlight);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ButtonScanlinePainter old) => false;
 }
 
 // ★ 3D D-PAD 버튼
@@ -539,38 +585,409 @@ class DPadButton3D extends StatefulWidget {
 
 class _DPadButton3DState extends State<DPadButton3D> {
   bool _pressed = false;
+  Timer? _repeatTimer;
+  static const _depth = 4.0;
+
+  void _startRepeating() {
+    widget.onTap(); // 첫 탭 즉시 실행
+    _repeatTimer?.cancel();
+    // ★ 길게 누르면 350ms 후부터 80ms 간격으로 연속 이동
+    _repeatTimer = Timer(const Duration(milliseconds: 350), () {
+      _repeatTimer = Timer.periodic(
+        const Duration(milliseconds: 80),
+        (_) => widget.onTap(),
+      );
+    });
+  }
+
+  void _stopRepeating() {
+    _repeatTimer?.cancel();
+    _repeatTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _repeatTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
+      onTapDown: (_) {
+        setState(() => _pressed = true);
+        _startRepeating();
+      },
       onTapUp: (_) {
         setState(() => _pressed = false);
-        widget.onTap();
+        _stopRepeating();
       },
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 60),
+      onTapCancel: () {
+        setState(() => _pressed = false);
+        _stopRepeating();
+      },
+      child: SizedBox(
         width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          color: widget.theme.buttonTop,
-          border: Border.all(color: widget.theme.buttonBorder),
-          boxShadow: _pressed
-              ? []
-              : [
-                  BoxShadow(
-                    color: widget.theme.buttonSide,
-                    offset: const Offset(0, 3),
-                    blurRadius: 0,
+        height: 24 + _depth,
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: 24,
+                decoration: BoxDecoration(
+                  color: widget.theme.buttonSide,
+                  border: Border.all(
+                    color: widget.theme.buttonBorder.withOpacity(0.5),
                   ),
-                ],
+                ),
+              ),
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 60),
+              left: 0,
+              right: 0,
+              top: _pressed ? _depth : 0,
+              child: Container(
+                height: 24,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      widget.theme.buttonTop,
+                      Color.lerp(widget.theme.buttonTop, Colors.black, 0.3)!,
+                    ],
+                  ),
+                  border: Border.all(color: widget.theme.buttonBorder),
+                ),
+                child: Icon(
+                  widget.icon,
+                  color: widget.theme.textSecondary,
+                  size: 14,
+                ),
+              ),
+            ),
+          ],
         ),
-        transform: Matrix4.translationValues(0, _pressed ? 2 : 0, 0),
-        child: Icon(widget.icon, color: widget.theme.textSecondary, size: 14),
       ),
     );
   }
+}
+
+// ★ 파티클 종류
+enum ParticleKind { star, bubble, dust }
+
+// ★ 무드별 이동 패턴
+enum MotionType { radiate, drift, still, glitch, swirl }
+
+class Particle {
+  double x, y; // 0~1 ratio (기준 위치)
+  double size;
+  double speed; // 0~1 per loop
+  double phase; // 깜빡임/움직임 위상
+  double drift; // 좌우 흔들림 폭
+  double angle; // radiate용 발산 각도
+  ParticleKind kind;
+  Particle({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.speed,
+    required this.phase,
+    required this.drift,
+    required this.angle,
+    required this.kind,
+  });
+}
+
+// ★ 무드별 파티클 설정
+class ParticleConfig {
+  final int count;
+  final ParticleKind kind;
+  final Color color;
+  final double minSize, maxSize;
+  final double speedMin, speedMax; // 한 바퀴 도는데 걸리는 시간(초)의 역수 느낌
+  final double twinkleSpeed; // 깜빡임 속도
+  final MotionType motion;
+  const ParticleConfig({
+    required this.count,
+    required this.kind,
+    required this.color,
+    required this.minSize,
+    required this.maxSize,
+    required this.speedMin,
+    required this.speedMax,
+    required this.twinkleSpeed,
+    required this.motion,
+  });
+}
+
+const particleConfigs = {
+  // 사방으로 퍼지며 반짝 - 화려하고 폭발적인 매니페스테이션
+  'manifestation': ParticleConfig(
+    count: 28,
+    kind: ParticleKind.star,
+    color: Color(0xFFD9B8FF),
+    minSize: 1.5,
+    maxSize: 3.5,
+    speedMin: 0.15,
+    speedMax: 0.35,
+    twinkleSpeed: 1.4,
+    motion: MotionType.radiate,
+  ),
+  // 좌우로 천천히 표류 - 바람에 날리는 듯한 소프트 라이프
+  'soft_life': ParticleConfig(
+    count: 14,
+    kind: ParticleKind.bubble,
+    color: Color(0xFFF0D9C0),
+    minSize: 3.0,
+    maxSize: 7.0,
+    speedMin: 0.04,
+    speedMax: 0.09,
+    twinkleSpeed: 0.4,
+    motion: MotionType.drift,
+  ),
+  // 거의 정지, 제자리 깜빡임 - 절제된 미니멀 댓걸
+  'that_girl': ParticleConfig(
+    count: 10,
+    kind: ParticleKind.dust,
+    color: Color(0xFFE8D0A0),
+    minSize: 1.0,
+    maxSize: 2.0,
+    speedMin: 0.05,
+    speedMax: 0.1,
+    twinkleSpeed: 0.6,
+    motion: MotionType.still,
+  ),
+  // 지그재그 + 순간이동 - 글리치한 사이버드림
+  'cyber_dream': ParticleConfig(
+    count: 36,
+    kind: ParticleKind.star,
+    color: Color(0xFF7FF5FF),
+    minSize: 1.5,
+    maxSize: 4.0,
+    speedMin: 0.3,
+    speedMax: 0.6,
+    twinkleSpeed: 2.6,
+    motion: MotionType.glitch,
+  ),
+  // 큰 원을 그리며 표류 - 안개처럼 부유하는 원더러스트
+  'wanderlust': ParticleConfig(
+    count: 20,
+    kind: ParticleKind.bubble,
+    color: Color(0xFFBFE0F5),
+    minSize: 2.0,
+    maxSize: 5.0,
+    speedMin: 0.06,
+    speedMax: 0.13,
+    twinkleSpeed: 0.5,
+    motion: MotionType.swirl,
+  ),
+};
+
+// ★ 화면 전체 떠다니는 파티클 레이어
+class ParticleOverlay extends StatefulWidget {
+  final String mood;
+  const ParticleOverlay({super.key, required this.mood});
+
+  @override
+  State<ParticleOverlay> createState() => _ParticleOverlayState();
+}
+
+class _ParticleOverlayState extends State<ParticleOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  List<Particle> _particles = [];
+  String _builtForMood = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+    _buildParticles();
+  }
+
+  @override
+  void didUpdateWidget(covariant ParticleOverlay old) {
+    super.didUpdateWidget(old);
+    if (old.mood != widget.mood) _buildParticles();
+  }
+
+  void _buildParticles() {
+    final cfg =
+        particleConfigs[widget.mood] ?? particleConfigs['manifestation']!;
+    final rng = Random(widget.mood.hashCode);
+    _particles = List.generate(
+      cfg.count,
+      (i) => Particle(
+        x: rng.nextDouble(),
+        y: rng.nextDouble(),
+        size: cfg.minSize + rng.nextDouble() * (cfg.maxSize - cfg.minSize),
+        speed: cfg.speedMin + rng.nextDouble() * (cfg.speedMax - cfg.speedMin),
+        phase: rng.nextDouble() * pi * 2,
+        drift: 0.02 + rng.nextDouble() * 0.04,
+        angle: rng.nextDouble() * pi * 2,
+        kind: cfg.kind,
+      ),
+    );
+    _builtForMood = widget.mood;
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cfg =
+        particleConfigs[widget.mood] ?? particleConfigs['manifestation']!;
+    if (_builtForMood != widget.mood) _buildParticles();
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, _) => CustomPaint(
+          painter: ParticlePainter(
+            particles: _particles,
+            t: _ctrl.value,
+            color: cfg.color,
+            twinkleSpeed: cfg.twinkleSpeed,
+            motion: cfg.motion,
+          ),
+          size: Size.infinite,
+        ),
+      ),
+    );
+  }
+}
+
+class ParticlePainter extends CustomPainter {
+  final List<Particle> particles;
+  final double t; // 0~1 루프
+  final Color color;
+  final double twinkleSpeed;
+  final MotionType motion;
+  ParticlePainter({
+    required this.particles,
+    required this.t,
+    required this.color,
+    required this.twinkleSpeed,
+    required this.motion,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in particles) {
+      double dx, dy;
+
+      switch (motion) {
+        case MotionType.radiate:
+          // ★ 중심에서 사방으로 퍼졌다가 다시 작아지며 사라짐 (폭발→리셋 루프)
+          final travel = (t * p.speed * 4 + p.phase / (pi * 2)) % 1.0;
+          final dist = sin(travel * pi) * 0.42; // 0 → 최대 → 0
+          final cx = 0.5 + cos(p.angle) * dist;
+          final cy = 0.5 + sin(p.angle) * dist * 0.8;
+          dx = cx.clamp(0.0, 1.0) * size.width;
+          dy = cy.clamp(0.0, 1.0) * size.height;
+          break;
+
+        case MotionType.drift:
+          // ★ 좌우로 느긋하게 표류하며 위로 아주 천천히
+          final travel = (t * p.speed * 3) % 1.0;
+          final py = (1.0 - travel);
+          final px = p.x + sin(t * pi * 2 * 0.3 + p.phase) * p.drift * 2.5;
+          dx = px.clamp(0.0, 1.0) * size.width;
+          dy = py * size.height;
+          break;
+
+        case MotionType.still:
+          // ★ 거의 제자리, 아주 미세하게만 흔들림
+          final px = p.x + sin(t * pi * 2 + p.phase) * p.drift * 0.4;
+          final py = p.y + cos(t * pi * 2 * 0.7 + p.phase) * p.drift * 0.4;
+          dx = px.clamp(0.0, 1.0) * size.width;
+          dy = py.clamp(0.0, 1.0) * size.height;
+          break;
+
+        case MotionType.glitch:
+          // ★ 지그재그로 움직이다 8단계마다 순간이동
+          final step = (t * p.speed * 10 + p.phase).floor() % 8;
+          final stepRng = Random(p.phase.hashCode + step);
+          final jumpX = stepRng.nextDouble();
+          final jumpY = stepRng.nextDouble();
+          final localT = ((t * p.speed * 10 + p.phase) % 1.0);
+          final zigzag = sin(localT * pi * 6) * 0.02;
+          dx = (jumpX + zigzag).clamp(0.0, 1.0) * size.width;
+          dy = (jumpY).clamp(0.0, 1.0) * size.height;
+          break;
+
+        case MotionType.swirl:
+          // ★ 위로 떠오르며 큰 원을 그리듯 표류 (안개)
+          final travel = (t * p.speed * 2.5) % 1.0;
+          final py = (1.0 - travel);
+          final swirl = t * pi * 2 * 0.5 + p.phase;
+          final px = p.x + cos(swirl) * p.drift * 3.0;
+          dx = px.clamp(0.0, 1.0) * size.width;
+          dy = py * size.height;
+          break;
+      }
+
+      final twinkle = (sin(t * pi * 2 * twinkleSpeed + p.phase) + 1) / 2; // 0~1
+      final opacity = (0.25 + twinkle * 0.6).clamp(0.0, 1.0);
+
+      if (p.kind == ParticleKind.star) {
+        final paint = Paint()..color = color.withOpacity(opacity);
+        // 십자 모양 별 반짝임
+        canvas.drawCircle(Offset(dx, dy), p.size * 0.5, paint);
+        final glow = Paint()
+          ..color = color.withOpacity(opacity * 0.4)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+        canvas.drawCircle(Offset(dx, dy), p.size * 1.4, glow);
+        final linePaint = Paint()
+          ..color = color.withOpacity(opacity * 0.8)
+          ..strokeWidth = 0.8;
+        canvas.drawLine(
+          Offset(dx - p.size, dy),
+          Offset(dx + p.size, dy),
+          linePaint,
+        );
+        canvas.drawLine(
+          Offset(dx, dy - p.size),
+          Offset(dx, dy + p.size),
+          linePaint,
+        );
+      } else if (p.kind == ParticleKind.bubble) {
+        final paint = Paint()
+          ..color = color.withOpacity(opacity * 0.35)
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(Offset(dx, dy), p.size, paint);
+        final ring = Paint()
+          ..color = color.withOpacity(opacity * 0.7)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.8;
+        canvas.drawCircle(Offset(dx, dy), p.size, ring);
+        final highlight = Paint()
+          ..color = Colors.white.withOpacity(opacity * 0.5);
+        canvas.drawCircle(
+          Offset(dx - p.size * 0.3, dy - p.size * 0.3),
+          p.size * 0.25,
+          highlight,
+        );
+      } else {
+        final paint = Paint()..color = color.withOpacity(opacity * 0.6);
+        canvas.drawCircle(Offset(dx, dy), p.size * 0.5, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant ParticlePainter old) => true;
 }
 
 class VisionBoardPage extends StatefulWidget {
@@ -584,6 +1001,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   List<BoardCard> cards = [];
   BoardBackground background = BoardBackground();
   int? selectedIndex;
+  int? draggingIndex; // ★ 드래그 중인 카드 (들어올리기 효과용)
+  int? spawnIndex; // ★ 방금 추가된 카드 (뱉어내는 등장 효과용)
   bool isLoading = true;
   bool _animStarted = false;
   bool _isExporting = false;
@@ -595,6 +1014,10 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   late AnimationController _neonController;
   late AnimationController _spotlightController; // ★ 스포트라이트 애니메이션
   late AnimationController _selectScaleController; // ★ 선택 카드 확대 애니메이션
+  late AnimationController
+  _moodTransitionController; // ★ 무드 전환 트랜지션 (카트리지 교체 느낌)
+  late AnimationController _spawnController; // ★ 새 카드 뱉어내는 등장 애니메이션
+  late AnimationController _savePulseController; // ★ 저장 시 화면 펄스 효과
   final List<double> _floatOffsets = [];
   static const _stickerCurve = _StickerCurve();
 
@@ -858,7 +1281,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       'imgs/soft_life/soft_life_17.jpg',
       'imgs/soft_life/soft_life_18.jpg',
       'imgs/soft_life/soft_life_19.jpg',
-      'imgs/soft_life/soft_life_20.jpg',
+      'imgs/soft_life/soft_life_20.png',
     ],
     'that_girl': [
       'imgs/That_Girl/that_girl_01.jpg',
@@ -883,7 +1306,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       'imgs/That_Girl/that_girl_20.jpg',
       'imgs/That_Girl/that_girl_21.jpg',
       'imgs/That_Girl/that_girl_22.jpg',
-      'imgs/That_Girl/that_girl_23.jpg',
+      'imgs/That_Girl/that_girl_23.png',
     ],
     'cyber_dream': [
       'imgs/Cyber_Dream/cyber_dream_01.jpg',
@@ -1071,7 +1494,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       'background/Cyber_Dream/bg_cyber_dream_04.jpg',
       'background/Cyber_Dream/bg_cyber_dream_05.jpg',
       'background/Cyber_Dream/bg_cyber_dream_06.jpg',
-      'background/Cyber_Dream/bg_cyber_dream_07.jpg',
+      'background/Cyber_Dream/bg_cyber_dream_07.png',
     ],
     'wanderlust': [
       'background/wanderlust/bg_wanderlust_01.jpg',
@@ -1112,7 +1535,19 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     );
     _selectScaleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 450),
+    );
+    _moodTransitionController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _spawnController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _savePulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
     );
     _loadBoard();
   }
@@ -1124,6 +1559,9 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     _neonController.dispose();
     _spotlightController.dispose();
     _selectScaleController.dispose();
+    _moodTransitionController.dispose();
+    _spawnController.dispose();
+    _savePulseController.dispose();
     super.dispose();
   }
 
@@ -1161,6 +1599,14 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     }
   }
 
+  // ★ 새 카드 추가 시 "뱉어내는" 등장 애니메이션 트리거
+  void _triggerSpawnAnimation(int index) {
+    setState(() => spawnIndex = index);
+    _spawnController.forward(from: 0).then((_) {
+      if (mounted) setState(() => spawnIndex = null);
+    });
+  }
+
   // ★ D-PAD로 카드 이동
   void _moveSelectedCard(double dx, double dy) {
     if (selectedIndex == null || selectedIndex! >= cards.length) return;
@@ -1169,7 +1615,13 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       card.xRatio = (card.xRatio + dx).clamp(0.0, 1.0);
       card.yRatio = (card.yRatio + dy).clamp(0.0, 1.0);
     });
-    _saveBoard();
+    _scheduleSave();
+  }
+
+  Timer? _saveDebounce;
+  void _scheduleSave() {
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(const Duration(milliseconds: 400), _saveBoard);
   }
 
   Future<void> _loadBoard() async {
@@ -1249,6 +1701,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   }
 
   void _applyMood(String moodKey) {
+    if (moodKey == _currentMood) return;
     final rng = Random(DateTime.now().millisecondsSinceEpoch);
     final screenW = MediaQuery.of(context).size.width;
     final screenH = MediaQuery.of(context).size.height;
@@ -1371,17 +1824,23 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     }
 
     _selectCard(null);
-    setState(() {
-      cards = newCards;
-      background = newBg;
-      _animStarted = false;
-      _currentMood = moodKey;
-    });
-    _initFloatOffsets();
-    _updateFloatSpeed();
-    _saveBoard();
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) _startIntroAnimation();
+
+    // ★ 카트리지 교체 트랜지션: 암전(forward) → 중간에 콘텐츠 교체 → 다시 밝아짐(reverse)
+    _moodTransitionController.forward(from: 0).then((_) {
+      if (!mounted) return;
+      setState(() {
+        cards = newCards;
+        background = newBg;
+        _animStarted = false;
+        _currentMood = moodKey;
+      });
+      _initFloatOffsets();
+      _updateFloatSpeed();
+      _saveBoard();
+      _moodTransitionController.reverse();
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) _startIntroAnimation();
+      });
     });
   }
 
@@ -1541,6 +2000,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     if (bytes == null) return;
     final base64Str = base64Encode(bytes);
     final rng = Random();
+    int newIndex = 0;
     setState(() {
       cards.add(
         BoardCard(
@@ -1553,7 +2013,9 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         ),
       );
       _floatOffsets.add(rng.nextDouble() * pi * 2);
+      newIndex = cards.length - 1;
     });
+    _triggerSpawnAnimation(newIndex);
     _saveBoard();
   }
 
@@ -1960,25 +2422,39 @@ class _VisionBoardPageState extends State<VisionBoardPage>
             ),
           ),
           const SizedBox(width: 10),
-          // LED 깜빡임
+          // LED 깜빡임 - 파티클 색상과 연동, 저장 시 빠르게 깜빡임
           AnimatedBuilder(
-            animation: _neonController,
-            builder: (_, __) => Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: _theme.accent,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: _theme.accent.withOpacity(
-                      0.4 + _neonController.value * 0.4,
+            animation: Listenable.merge([
+              _neonController,
+              _savePulseController,
+            ]),
+            builder: (_, __) {
+              final ledColor =
+                  particleConfigs[_currentMood]?.color ?? _theme.accent;
+              // 저장 펄스가 진행 중이면 빠른 깜빡임을 덧씌움
+              final saveBlink = _savePulseController.isAnimating
+                  ? (sin(_savePulseController.value * pi * 10) + 1) / 2
+                  : 0.0;
+              final glowStrength =
+                  (0.4 + _neonController.value * 0.4 + saveBlink * 0.5).clamp(
+                    0.0,
+                    1.0,
+                  );
+              return Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: ledColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: ledColor.withOpacity(glowStrength),
+                      blurRadius: 6 + saveBlink * 6,
                     ),
-                    blurRadius: 6,
-                  ),
-                ],
-              ),
-            ),
+                  ],
+                ),
+              );
+            },
           ),
           const SizedBox(width: 6),
           Container(
@@ -2074,6 +2550,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     label: 'SAVE',
                     onTap: () async {
                       await _saveBoard();
+                      _savePulseController.forward(from: 0);
                       if (mounted)
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -2132,7 +2609,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 
   // ★ 3D D-PAD 빌드
   Widget _build3DDPad() {
-    const moveStep = 0.01;
+    const moveStep = 0.018;
     return SizedBox(
       width: 80,
       height: 70,
@@ -2233,14 +2710,32 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   }
 
   Widget _buildScreenBezel({required Widget child}) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      decoration: BoxDecoration(
-        color: _theme.deviceBorder,
-        border: Border.all(color: _theme.screenBorder, width: 2),
-      ),
-      padding: const EdgeInsets.all(3),
-      child: child,
+    return AnimatedBuilder(
+      animation: _savePulseController,
+      builder: (context, _) {
+        // ★ 저장 시 베젤 가장자리가 무드 색상으로 잠깐 펄스
+        final pulse = (sin(
+          _savePulseController.value * pi,
+        )).clamp(0.0, 1.0); // 0→1→0
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          decoration: BoxDecoration(
+            color: _theme.deviceBorder,
+            border: Border.all(color: _theme.screenBorder, width: 2),
+            boxShadow: pulse > 0.01
+                ? [
+                    BoxShadow(
+                      color: _theme.accent.withOpacity(pulse * 0.7),
+                      blurRadius: 18 + pulse * 14,
+                      spreadRadius: 1 + pulse * 2,
+                    ),
+                  ]
+                : [],
+          ),
+          padding: const EdgeInsets.all(3),
+          child: child,
+        );
+      },
     );
   }
 
@@ -2283,6 +2778,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                     _neonController,
                                     _spotlightController,
                                     _selectScaleController,
+                                    _spawnController,
                                   ]),
                                   builder: (context, _) {
                                     final spotlightVal =
@@ -2367,16 +2863,60 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                                   : (1.0 - spotlightVal * 0.65))
                                             : 1.0;
 
-                                        // ★ 선택된 카드 확대
+                                        // ★ 선택된 카드 확대 - 펄스(바운스) 효과
+                                        final selectCurve = Curves.elasticOut
+                                            .transform(
+                                              _selectScaleController.value,
+                                            );
                                         final selectScale = isSelected
-                                            ? (1.0 +
-                                                  _selectScaleController.value *
-                                                      0.08)
+                                            ? (1.0 + selectCurve * 0.1)
                                             : 1.0;
+
+                                        // ★ 드래그 중인 카드 들어올리기 효과
+                                        final isDragging =
+                                            draggingIndex == index;
+                                        final dragScale = isDragging
+                                            ? 1.22
+                                            : 1.0;
+
+                                        // ★ 새로 추가된 카드 - 슬롯에서 톡 튀어나오는 등장 효과
+                                        final isSpawning = spawnIndex == index;
+                                        final spawnT = Curves.elasticOut
+                                            .transform(
+                                              _spawnController.value.clamp(
+                                                0.0,
+                                                1.0,
+                                              ),
+                                            );
+                                        final spawnScale = isSpawning
+                                            ? (0.05 + spawnT * 0.95)
+                                            : 1.0;
+                                        final spawnOpacity = isSpawning
+                                            ? _spawnController.value.clamp(
+                                                0.0,
+                                                1.0,
+                                              )
+                                            : 1.0;
+                                        final spawnRiseY = isSpawning
+                                            ? (1.0 -
+                                                      _spawnController.value
+                                                          .clamp(0.0, 1.0)) *
+                                                  60.0
+                                            : 0.0;
+
+                                        // ★ 드래그 시 카드가 살짝 위로 들리는 느낌
+                                        final dragLift = isDragging
+                                            ? -10.0
+                                            : 0.0;
 
                                         return Positioned(
                                           left: px + introDx,
-                                          top: py + introDy + floatY,
+                                          top:
+                                              py +
+                                              introDy +
+                                              floatY +
+                                              spawnRiseY +
+                                              dragLift,
                                           child: GestureDetector(
                                             behavior: HitTestBehavior.opaque,
                                             onTap: () => _selectCard(
@@ -2390,6 +2930,9 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                                   editIndex: index,
                                                 );
                                             },
+                                            onPanStart: (_) => setState(
+                                              () => draggingIndex = index,
+                                            ),
                                             onPanUpdate: (d) {
                                               setState(() {
                                                 card.xRatio =
@@ -2404,81 +2947,124 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                                         .clamp(0.0, 1.0);
                                               });
                                             },
-                                            onPanEnd: (_) => _saveBoard(),
+                                            onPanEnd: (_) {
+                                              setState(
+                                                () => draggingIndex = null,
+                                              );
+                                              _saveBoard();
+                                            },
                                             child: Opacity(
                                               opacity:
-                                                  (introOpacity * dimOpacity)
+                                                  (introOpacity *
+                                                          dimOpacity *
+                                                          spawnOpacity)
                                                       .clamp(0.0, 1.0),
-                                              child: Transform.scale(
-                                                scale: scale * selectScale,
-                                                child: Transform.rotate(
-                                                  angle: introRotate + floatRot,
-                                                  child: Stack(
-                                                    clipBehavior: Clip.none,
-                                                    children: [
-                                                      // ★ 선택 시 카드 주변 글로우 테두리
-                                                      if (isSelected)
-                                                        Positioned(
-                                                          left: -3,
-                                                          top: -3,
-                                                          right: -3,
-                                                          bottom: -3,
-                                                          child: Container(
-                                                            decoration: BoxDecoration(
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    4,
+                                              child: AnimatedScale(
+                                                scale:
+                                                    scale *
+                                                    selectScale *
+                                                    dragScale *
+                                                    spawnScale,
+                                                duration: const Duration(
+                                                  milliseconds: 90,
+                                                ),
+                                                curve: Curves.easeOut,
+                                                child: AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 90,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    boxShadow: isDragging
+                                                        ? [
+                                                            BoxShadow(
+                                                              color: Colors
+                                                                  .black
+                                                                  .withOpacity(
+                                                                    0.65,
                                                                   ),
-                                                              boxShadow: [
-                                                                BoxShadow(
+                                                              blurRadius: 30,
+                                                              offset:
+                                                                  const Offset(
+                                                                    0,
+                                                                    18,
+                                                                  ),
+                                                              spreadRadius: 2,
+                                                            ),
+                                                          ]
+                                                        : [],
+                                                  ),
+                                                  child: Transform.rotate(
+                                                    angle:
+                                                        introRotate + floatRot,
+                                                    child: Stack(
+                                                      clipBehavior: Clip.none,
+                                                      children: [
+                                                        // ★ 선택 시 카드 주변 글로우 테두리
+                                                        if (isSelected)
+                                                          Positioned(
+                                                            left: -3,
+                                                            top: -3,
+                                                            right: -3,
+                                                            bottom: -3,
+                                                            child: Container(
+                                                              decoration: BoxDecoration(
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      4,
+                                                                    ),
+                                                                boxShadow: [
+                                                                  BoxShadow(
+                                                                    color: _theme
+                                                                        .accent
+                                                                        .withOpacity(
+                                                                          0.6 *
+                                                                              spotlightVal,
+                                                                        ),
+                                                                    blurRadius:
+                                                                        16,
+                                                                    spreadRadius:
+                                                                        2,
+                                                                  ),
+                                                                ],
+                                                                border: Border.all(
                                                                   color: _theme
                                                                       .accent
                                                                       .withOpacity(
-                                                                        0.6 *
+                                                                        0.8 *
                                                                             spotlightVal,
                                                                       ),
-                                                                  blurRadius:
-                                                                      16,
-                                                                  spreadRadius:
-                                                                      2,
+                                                                  width: 2,
                                                                 ),
-                                                              ],
-                                                              border: Border.all(
-                                                                color: _theme
-                                                                    .accent
-                                                                    .withOpacity(
-                                                                      0.8 *
-                                                                          spotlightVal,
-                                                                    ),
-                                                                width: 2,
                                                               ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      // 카드 본체
-                                                      card.imageUrl != null ||
-                                                              card.imageBase64 !=
-                                                                  null
-                                                          ? _buildPhotoCard(
-                                                              card,
-                                                              pw,
-                                                              ph,
-                                                            )
-                                                          : _buildSpecialTextCard(
-                                                              text: card.text!,
-                                                              style: card.style,
-                                                              textColor: Color(
-                                                                card.textColor,
+                                                        // 카드 본체
+                                                        card.imageUrl != null ||
+                                                                card.imageBase64 !=
+                                                                    null
+                                                            ? _buildPhotoCard(
+                                                                card,
+                                                                pw,
+                                                                ph,
+                                                              )
+                                                            : _buildSpecialTextCard(
+                                                                text:
+                                                                    card.text!,
+                                                                style:
+                                                                    card.style,
+                                                                textColor: Color(
+                                                                  card.textColor,
+                                                                ),
+                                                                paperColor: Color(
+                                                                  card.paperColor,
+                                                                ),
+                                                                w: pw,
+                                                                h: ph,
+                                                                neonFlicker:
+                                                                    neonFlicker,
                                                               ),
-                                                              paperColor: Color(
-                                                                card.paperColor,
-                                                              ),
-                                                              w: pw,
-                                                              h: ph,
-                                                              neonFlicker:
-                                                                  neonFlicker,
-                                                            ),
-                                                    ],
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -2488,6 +3074,25 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                       }),
                                     );
                                   },
+                                ),
+                                // ★ 반짝이는 파티클 레이어 (카드 위, 무드별 스타일)
+                                Positioned.fill(
+                                  child: ParticleOverlay(mood: _currentMood),
+                                ),
+                                // ★ 무드 전환 트랜지션 (카트리지 교체 느낌: 암전 + 스캔라인)
+                                Positioned.fill(
+                                  child: AnimatedBuilder(
+                                    animation: _moodTransitionController,
+                                    builder: (context, _) => IgnorePointer(
+                                      child: CustomPaint(
+                                        painter: MoodTransitionPainter(
+                                          t: _moodTransitionController.value,
+                                          color: _theme.accent,
+                                        ),
+                                        size: Size.infinite,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -2759,6 +3364,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       onPressed: () {
                         if (controller.text.isNotEmpty) {
                           final rng = Random();
+                          int? newIndex;
                           setState(() {
                             if (isEdit) {
                               cards[editIndex].text = controller.text;
@@ -2782,9 +3388,12 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                 ),
                               );
                               _floatOffsets.add(rng.nextDouble() * pi * 2);
+                              newIndex = cards.length - 1;
                             }
                           });
                           _saveBoard();
+                          if (newIndex != null)
+                            _triggerSpawnAnimation(newIndex!);
                         }
                         Navigator.pop(ctx);
                       },
@@ -3450,6 +4059,50 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       ),
     );
   }
+}
+
+// ★ 무드 전환 시 카트리지 교체 느낌 - 암전 + 스캔라인
+class MoodTransitionPainter extends CustomPainter {
+  final double t; // 0(평소) → 1(완전 암전) → 0(복귀)
+  final Color color;
+  MoodTransitionPainter({required this.t, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (t <= 0.001) return;
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+
+    // 암전 (검은 페이드)
+    canvas.drawRect(
+      rect,
+      Paint()..color = Colors.black.withOpacity((t * 0.92).clamp(0.0, 0.92)),
+    );
+
+    // 스캔라인이 위에서 아래로 휙 지나가는 효과
+    final scanY = t * size.height * 1.4 - size.height * 0.2;
+    final scanPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          color.withOpacity(0.0),
+          color.withOpacity(0.55),
+          color.withOpacity(0.0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(Rect.fromLTWH(0, scanY - 60, size.width, 120));
+    canvas.drawRect(Rect.fromLTWH(0, scanY - 60, size.width, 120), scanPaint);
+
+    // 가는 가로 스캔라인 텍스처 (은은하게)
+    final linePaint = Paint()..color = color.withOpacity(0.06 * t);
+    for (double y = 0; y < size.height; y += 3) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant MoodTransitionPainter old) =>
+      old.t != t || old.color != color;
 }
 
 class _StickerCurve extends Curve {
