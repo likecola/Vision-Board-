@@ -32,25 +32,30 @@ class MyApp extends StatelessWidget {
 }
 
 class MoodTheme {
-  final Color deviceBg;
-  final Color deviceBorder;
-  final Color screenBg;
-  final Color screenBorder;
-  final Color accent;
+  final Color deviceBg; // shell1
+  final Color deviceBg2; // shell2
+  final Color deviceBorder; // shellHi
+  final Color screenBorder; // bezel
+  final Color accent; // accent
+  final Color accent2; // accent2
   final Color accentDim;
-  final Color buttonBg;
-  final Color buttonBorder;
-  final Color buttonTop; // ★ 버튼 상단면 (밝은색)
-  final Color buttonSide; // ★ 버튼 측면 (어두운색, 3D 효과)
-  final Color textPrimary;
-  final Color textSecondary;
+  final Color buttonBg; // btnFace
+  final Color buttonBorder; // btnEdge
+  final Color buttonTop;
+  final Color buttonSide;
+  final Color textPrimary; // text
+  final Color textSecondary; // muted
+  final Color cardFrame; // cardFrame
+  final Color glowColor; // glow
+  final Color vigColor; // vignette
 
   const MoodTheme({
     required this.deviceBg,
+    required this.deviceBg2,
     required this.deviceBorder,
-    required this.screenBg,
     required this.screenBorder,
     required this.accent,
+    required this.accent2,
     required this.accentDim,
     required this.buttonBg,
     required this.buttonBorder,
@@ -58,79 +63,107 @@ class MoodTheme {
     required this.buttonSide,
     required this.textPrimary,
     required this.textSecondary,
+    required this.cardFrame,
+    required this.glowColor,
+    required this.vigColor,
   });
 }
 
 const moodThemes = {
+  // ✨ Manifestation — 딥 퍼플/핑크, 화려하고 폭발적
   'manifestation': MoodTheme(
-    deviceBg: Color(0xFF1a1a2e),
-    deviceBorder: Color(0xFF2d2d4e),
-    screenBg: Color(0xFF0a0a18),
-    screenBorder: Color(0xFF3d3d6e),
-    accent: Color(0xFFa78bfa),
-    accentDim: Color(0xFF4a3a8a),
-    buttonBg: Color(0xFF2a2a4a),
-    buttonBorder: Color(0xFF5a4aaa),
-    buttonTop: Color(0xFF3a3a6a),
-    buttonSide: Color(0xFF0a0a1a),
-    textPrimary: Color(0xFFc4b5fd),
-    textSecondary: Color(0xFF6b6ba8),
+    deviceBg: Color(0xFF3a2566),
+    deviceBg2: Color(0xFF1d1138),
+    deviceBorder: Color(0xFF4e2f86),
+    screenBorder: Color(0xFF0c0720),
+    accent: Color(0xFFcf8bff),
+    accent2: Color(0xFFff79c6),
+    accentDim: Color(0xFF46298a),
+    buttonBg: Color(0xFF46298a),
+    buttonBorder: Color(0xFF241248),
+    buttonTop: Color(0xFF5a3aa0),
+    buttonSide: Color(0xFF160a30),
+    textPrimary: Color(0xFFf3e8ff),
+    textSecondary: Color(0xFFb79fdd),
+    cardFrame: Color(0xFFece4f6),
+    glowColor: Color(0x80cf8bff),
+    vigColor: Color(0xA60a041e),
   ),
+  // 🌿 Soft Life — 베이지/크림/테라코타
   'soft_life': MoodTheme(
-    deviceBg: Color(0xFF2e2018),
-    deviceBorder: Color(0xFF4a3020),
-    screenBg: Color(0xFF1a100a),
-    screenBorder: Color(0xFF6a4a30),
-    accent: Color(0xFFd4956a),
-    accentDim: Color(0xFF6a3a18),
-    buttonBg: Color(0xFF3a2818),
-    buttonBorder: Color(0xFF8a5a38),
-    buttonTop: Color(0xFF4a3828),
-    buttonSide: Color(0xFF1a0808),
-    textPrimary: Color(0xFFf0c8a0),
-    textSecondary: Color(0xFF8a6848),
+    deviceBg: Color(0xFFe6d4b6),
+    deviceBg2: Color(0xFFc3a87f),
+    deviceBorder: Color(0xFFf1e4cd),
+    screenBorder: Color(0xFF9c8059),
+    accent: Color(0xFFb06a44),
+    accent2: Color(0xFF7e8f5d),
+    accentDim: Color(0xFFa87040),
+    buttonBg: Color(0xFFd8c19c),
+    buttonBorder: Color(0xFFa8865c),
+    buttonTop: Color(0xFFe8d5b0),
+    buttonSide: Color(0xFF8a6c42),
+    textPrimary: Color(0xFF5a4733),
+    textSecondary: Color(0xFF977f5e),
+    cardFrame: Color(0xFFfcf7ec),
+    glowColor: Color(0x73b06a44),
+    vigColor: Color(0x66785f3c),
   ),
+  // 💪 That Girl — 블랙/골드, 미니멀
   'that_girl': MoodTheme(
-    deviceBg: Color(0xFF111111),
-    deviceBorder: Color(0xFF2a2a2a),
-    screenBg: Color(0xFF080808),
-    screenBorder: Color(0xFF3a3a3a),
-    accent: Color(0xFFc8a97e),
-    accentDim: Color(0xFF4a3a20),
-    buttonBg: Color(0xFF1a1a1a),
-    buttonBorder: Color(0xFF5a4a28),
-    buttonTop: Color(0xFF2a2a2a),
-    buttonSide: Color(0xFF000000),
-    textPrimary: Color(0xFFe8d0a8),
-    textSecondary: Color(0xFF6a5a38),
+    deviceBg: Color(0xFF211e19),
+    deviceBg2: Color(0xFF0c0b09),
+    deviceBorder: Color(0xFF2f2a22),
+    screenBorder: Color(0xFF000000),
+    accent: Color(0xFFcba24f),
+    accent2: Color(0xFFe7d29a),
+    accentDim: Color(0xFF7a6230),
+    buttonBg: Color(0xFF26221b),
+    buttonBorder: Color(0xFF0c0b08),
+    buttonTop: Color(0xFF322d24),
+    buttonSide: Color(0xFF060504),
+    textPrimary: Color(0xFFece5d6),
+    textSecondary: Color(0xFF8a8270),
+    cardFrame: Color(0xFF14120e),
+    glowColor: Color(0x80cba24f),
+    vigColor: Color(0xC8000000),
   ),
+  // 🌀 Cyber Dream — 딥네이비/시안/핑크 네온
   'cyber_dream': MoodTheme(
-    deviceBg: Color(0xFF0d0520),
-    deviceBorder: Color(0xFF1a0a40),
-    screenBg: Color(0xFF050010),
-    screenBorder: Color(0xFF2a0a50),
-    accent: Color(0xFF00f5ff),
-    accentDim: Color(0xFF003a4a),
-    buttonBg: Color(0xFF100a28),
-    buttonBorder: Color(0xFF00a8cc),
-    buttonTop: Color(0xFF1a1038),
-    buttonSide: Color(0xFF020008),
-    textPrimary: Color(0xFF80ffff),
-    textSecondary: Color(0xFF306878),
+    deviceBg: Color(0xFF0e1c3c),
+    deviceBg2: Color(0xFF050a1c),
+    deviceBorder: Color(0xFF1a3568),
+    screenBorder: Color(0xFF01030c),
+    accent: Color(0xFF2fe6ff),
+    accent2: Color(0xFFff45e0),
+    accentDim: Color(0xFF0a4060),
+    buttonBg: Color(0xFF10254e),
+    buttonBorder: Color(0xFF040a1c),
+    buttonTop: Color(0xFF1a3060),
+    buttonSide: Color(0xFF020610),
+    textPrimary: Color(0xFFcdfbff),
+    textSecondary: Color(0xFF5fa3cc),
+    cardFrame: Color(0xFF06112a),
+    glowColor: Color(0xBF2fe6ff),
+    vigColor: Color(0xB202060f),
   ),
+  // 🌍 Wanderlust — 딥틸/아쿠아
   'wanderlust': MoodTheme(
-    deviceBg: Color(0xFF0e1e2a),
-    deviceBorder: Color(0xFF1a3040),
-    screenBg: Color(0xFF080e14),
-    screenBorder: Color(0xFF2a4a60),
-    accent: Color(0xFF6baed6),
-    accentDim: Color(0xFF1a3a50),
-    buttonBg: Color(0xFF142030),
-    buttonBorder: Color(0xFF3a6a90),
-    buttonTop: Color(0xFF1e3040),
-    buttonSide: Color(0xFF040e18),
-    textPrimary: Color(0xFFa8d8f0),
-    textSecondary: Color(0xFF3a6880),
+    deviceBg: Color(0xFF15414f),
+    deviceBg2: Color(0xFF0a2330),
+    deviceBorder: Color(0xFF1f6377),
+    screenBorder: Color(0xFF06161d),
+    accent: Color(0xFF52d6c8),
+    accent2: Color(0xFF86bce0),
+    accentDim: Color(0xFF1a5050),
+    buttonBg: Color(0xFF134653),
+    buttonBorder: Color(0xFF08222b),
+    buttonTop: Color(0xFF1d5e6e),
+    buttonSide: Color(0xFF040e14),
+    textPrimary: Color(0xFFdff6f3),
+    textSecondary: Color(0xFF7fb2b2),
+    cardFrame: Color(0xFF08222b),
+    glowColor: Color(0x8C52d6c8),
+    vigColor: Color(0x99061e26),
   ),
 };
 
@@ -433,6 +466,8 @@ class GameButton3D extends StatefulWidget {
   final bool isActive;
   final MoodTheme theme;
   final double fontSize;
+  final bool isVertical;
+  final String? iconText;
 
   const GameButton3D({
     super.key,
@@ -443,6 +478,8 @@ class GameButton3D extends StatefulWidget {
     this.isActive = false,
     required this.theme,
     this.fontSize = 8,
+    this.isVertical = false,
+    this.iconText,
   });
 
   @override
@@ -451,7 +488,7 @@ class GameButton3D extends StatefulWidget {
 
 class _GameButton3DState extends State<GameButton3D> {
   bool _pressed = false;
-  static const _depth = 5.0; // ★ 3D 깊이
+  static const _depth = 5.0;
 
   @override
   Widget build(BuildContext context) {
@@ -461,6 +498,52 @@ class _GameButton3DState extends State<GameButton3D> {
     final sideColor = widget.isActive
         ? widget.theme.accent.withOpacity(0.4)
         : widget.theme.buttonSide;
+
+    Widget content;
+    if (widget.isVertical && widget.iconText != null) {
+      // Claude Design 스타일 수직 버튼 (아이콘 위 + 라벨 아래)
+      content = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            widget.iconText!,
+            style: TextStyle(
+              color: widget.isActive
+                  ? widget.theme.deviceBg
+                  : widget.theme.textPrimary,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            widget.label,
+            style: TextStyle(
+              color: widget.isActive
+                  ? widget.theme.deviceBg
+                  : widget.theme.textSecondary,
+              fontSize: widget.fontSize,
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      );
+    } else {
+      content = Center(
+        child: Text(
+          widget.label,
+          style: TextStyle(
+            color: widget.isActive
+                ? widget.theme.deviceBg
+                : widget.theme.textPrimary,
+            fontSize: widget.fontSize,
+            fontFamily: 'monospace',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -474,7 +557,6 @@ class _GameButton3DState extends State<GameButton3D> {
         height: widget.height + _depth,
         child: Stack(
           children: [
-            // ★ 측면 (바닥 레이어) - 항상 고정
             Positioned(
               left: 0,
               right: 0,
@@ -483,7 +565,7 @@ class _GameButton3DState extends State<GameButton3D> {
                 height: widget.height,
                 decoration: BoxDecoration(
                   color: sideColor,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: widget.theme.buttonBorder.withOpacity(0.6),
                     width: 1,
@@ -491,7 +573,6 @@ class _GameButton3DState extends State<GameButton3D> {
                 ),
               ),
             ),
-            // ★ 표면 (위 레이어) - 눌리면 아래로 이동
             AnimatedPositioned(
               duration: const Duration(milliseconds: 60),
               left: 0,
@@ -503,12 +584,9 @@ class _GameButton3DState extends State<GameButton3D> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      topColor,
-                      Color.lerp(topColor, Colors.black, 0.25)!,
-                    ],
+                    colors: [widget.theme.deviceBorder, topColor],
                   ),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: widget.isActive
                         ? widget.theme.accent
@@ -518,26 +596,13 @@ class _GameButton3DState extends State<GameButton3D> {
                 ),
                 child: Stack(
                   children: [
-                    // ★ 미세한 스캔라인 텍스처 (레트로 기기 질감)
                     Positioned.fill(
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(5),
+                        borderRadius: BorderRadius.circular(7),
                         child: CustomPaint(painter: _ButtonScanlinePainter()),
                       ),
                     ),
-                    Center(
-                      child: Text(
-                        widget.label,
-                        style: TextStyle(
-                          color: widget.isActive
-                              ? widget.theme.deviceBg
-                              : widget.theme.textPrimary,
-                          fontSize: widget.fontSize,
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                    content,
                   ],
                 ),
               ),
@@ -571,12 +636,14 @@ class DPadButton3D extends StatefulWidget {
   final IconData icon;
   final VoidCallback onTap;
   final MoodTheme theme;
+  final double size;
 
   const DPadButton3D({
     super.key,
     required this.icon,
     required this.onTap,
     required this.theme,
+    this.size = 32.0,
   });
 
   @override
@@ -589,9 +656,8 @@ class _DPadButton3DState extends State<DPadButton3D> {
   static const _depth = 4.0;
 
   void _startRepeating() {
-    widget.onTap(); // 첫 탭 즉시 실행
+    widget.onTap();
     _repeatTimer?.cancel();
-    // ★ 길게 누르면 350ms 후부터 80ms 간격으로 연속 이동
     _repeatTimer = Timer(const Duration(milliseconds: 350), () {
       _repeatTimer = Timer.periodic(
         const Duration(milliseconds: 80),
@@ -613,6 +679,7 @@ class _DPadButton3DState extends State<DPadButton3D> {
 
   @override
   Widget build(BuildContext context) {
+    final s = widget.size;
     return GestureDetector(
       onTapDown: (_) {
         setState(() => _pressed = true);
@@ -627,17 +694,19 @@ class _DPadButton3DState extends State<DPadButton3D> {
         _stopRepeating();
       },
       child: SizedBox(
-        width: 24,
-        height: 24 + _depth,
+        width: s,
+        height: s + _depth,
         child: Stack(
           children: [
+            // 측면
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               child: Container(
-                height: 24,
+                height: s,
                 decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
                   color: widget.theme.buttonSide,
                   border: Border.all(
                     color: widget.theme.buttonBorder.withOpacity(0.5),
@@ -645,28 +714,35 @@ class _DPadButton3DState extends State<DPadButton3D> {
                 ),
               ),
             ),
+            // 표면 (Claude Design: shellHi→btnFace 그라디언트)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 60),
               left: 0,
               right: 0,
               top: _pressed ? _depth : 0,
               child: Container(
-                height: 24,
+                height: s,
                 decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      widget.theme.buttonTop,
-                      Color.lerp(widget.theme.buttonTop, Colors.black, 0.3)!,
-                    ],
+                    colors: [widget.theme.deviceBorder, widget.theme.buttonBg],
                   ),
-                  border: Border.all(color: widget.theme.buttonBorder),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.theme.buttonSide,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: widget.theme.buttonBorder.withOpacity(0.7),
+                  ),
                 ),
                 child: Icon(
                   widget.icon,
                   color: widget.theme.textSecondary,
-                  size: 14,
+                  size: s * 0.45,
                 ),
               ),
             ),
@@ -678,120 +754,71 @@ class _DPadButton3DState extends State<DPadButton3D> {
 }
 
 // ★ 파티클 종류
-enum ParticleKind { star, bubble, dust }
+// ★ HTML 원본과 동일한 파티클 타입
+enum PType { star, dust, gold, glitch, bubble }
 
-// ★ 무드별 이동 패턴
-enum MotionType { radiate, drift, still, glitch, swirl }
-
-class Particle {
-  double x, y; // 0~1 ratio (기준 위치)
-  double size;
-  double speed; // 0~1 per loop
-  double phase; // 깜빡임/움직임 위상
-  double drift; // 좌우 흔들림 폭
-  double angle; // radiate용 발산 각도
-  ParticleKind kind;
-  Particle({
-    required this.x,
-    required this.y,
-    required this.size,
-    required this.speed,
-    required this.phase,
-    required this.drift,
-    required this.angle,
-    required this.kind,
+// ★ 무드별 파티클 설정 (HTML 원본과 동일)
+class MoodParticleConfig {
+  final PType ptype;
+  final Color accent;
+  final Color accent2;
+  const MoodParticleConfig({
+    required this.ptype,
+    required this.accent,
+    required this.accent2,
   });
 }
 
-// ★ 무드별 파티클 설정
-class ParticleConfig {
-  final int count;
-  final ParticleKind kind;
-  final Color color;
-  final double minSize, maxSize;
-  final double speedMin, speedMax; // 한 바퀴 도는데 걸리는 시간(초)의 역수 느낌
-  final double twinkleSpeed; // 깜빡임 속도
-  final MotionType motion;
-  const ParticleConfig({
-    required this.count,
-    required this.kind,
-    required this.color,
-    required this.minSize,
-    required this.maxSize,
-    required this.speedMin,
-    required this.speedMax,
-    required this.twinkleSpeed,
-    required this.motion,
-  });
-}
-
-const particleConfigs = {
-  // 사방으로 퍼지며 반짝 - 화려하고 폭발적인 매니페스테이션
-  'manifestation': ParticleConfig(
-    count: 28,
-    kind: ParticleKind.star,
-    color: Color(0xFFD9B8FF),
-    minSize: 1.5,
-    maxSize: 3.5,
-    speedMin: 0.15,
-    speedMax: 0.35,
-    twinkleSpeed: 1.4,
-    motion: MotionType.radiate,
-  ),
-  // 좌우로 천천히 표류 - 바람에 날리는 듯한 소프트 라이프
-  'soft_life': ParticleConfig(
-    count: 14,
-    kind: ParticleKind.bubble,
-    color: Color(0xFFF0D9C0),
-    minSize: 3.0,
-    maxSize: 7.0,
-    speedMin: 0.04,
-    speedMax: 0.09,
-    twinkleSpeed: 0.4,
-    motion: MotionType.drift,
-  ),
-  // 거의 정지, 제자리 깜빡임 - 절제된 미니멀 댓걸
-  'that_girl': ParticleConfig(
-    count: 10,
-    kind: ParticleKind.dust,
-    color: Color(0xFFE8D0A0),
-    minSize: 1.0,
-    maxSize: 2.0,
-    speedMin: 0.05,
-    speedMax: 0.1,
-    twinkleSpeed: 0.6,
-    motion: MotionType.still,
-  ),
-  // 지그재그 + 순간이동 - 글리치한 사이버드림
-  'cyber_dream': ParticleConfig(
-    count: 36,
-    kind: ParticleKind.star,
-    color: Color(0xFF7FF5FF),
-    minSize: 1.5,
-    maxSize: 4.0,
-    speedMin: 0.3,
-    speedMax: 0.6,
-    twinkleSpeed: 2.6,
-    motion: MotionType.glitch,
-  ),
-  // 큰 원을 그리며 표류 - 안개처럼 부유하는 원더러스트
-  'wanderlust': ParticleConfig(
-    count: 20,
-    kind: ParticleKind.bubble,
-    color: Color(0xFFBFE0F5),
-    minSize: 2.0,
-    maxSize: 5.0,
-    speedMin: 0.06,
-    speedMax: 0.13,
-    twinkleSpeed: 0.5,
-    motion: MotionType.swirl,
-  ),
+// particleConfigs는 MoodTheme에서 직접 꺼냄 — 별도 map 불필요
+// ptype 매핑
+const moodPTypes = {
+  'manifestation': PType.star,
+  'soft_life': PType.dust,
+  'that_girl': PType.gold,
+  'cyber_dream': PType.glitch,
+  'wanderlust': PType.bubble,
 };
 
-// ★ 화면 전체 떠다니는 파티클 레이어
+// ★ HTML 원본 Particle 구조 (픽셀 단위)
+class HParticle {
+  double x, y;
+  double s; // star/gold: size, dust/bubble: radius
+  double vy; // star/gold/bubble: vertical speed
+  double vx; // dust: horizontal speed
+  double ph; // phase
+  double sp; // star/gold: twinkle speed
+  double wob; // bubble: wobble
+  double a; // bubble/dust: alpha
+  double w, h, t; // glitch: width, height, ttl
+  Color col; // glitch: color
+  HParticle({
+    this.x = 0,
+    this.y = 0,
+    this.s = 3,
+    this.vy = 0.3,
+    this.vx = 0,
+    this.ph = 0,
+    this.sp = 2,
+    this.wob = 0.8,
+    this.a = 0.2,
+    this.w = 20,
+    this.h = 2,
+    this.t = 20,
+    this.col = const Color(0xFFFFFFFF),
+  });
+}
+
+// ★ 화면 전체 떠다니는 파티클 레이어 (HTML 원본 로직)
 class ParticleOverlay extends StatefulWidget {
   final String mood;
-  const ParticleOverlay({super.key, required this.mood});
+  final Color accent;
+  final Color accent2;
+  const ParticleOverlay({
+    super.key,
+    required this.mood,
+    required this.accent,
+    required this.accent2,
+  });
 
   @override
   State<ParticleOverlay> createState() => _ParticleOverlayState();
@@ -800,43 +827,25 @@ class ParticleOverlay extends StatefulWidget {
 class _ParticleOverlayState extends State<ParticleOverlay>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
-  List<Particle> _particles = [];
+  List<HParticle> _particles = [];
   String _builtForMood = '';
+  double _w = 0, _h = 0;
 
   @override
   void initState() {
     super.initState();
+    // HTML 원본: requestAnimationFrame 루프 → 60fps로 맞춤
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 20),
+      duration: const Duration(seconds: 60),
     )..repeat();
-    _buildParticles();
+    _buildParticles(800, 500);
   }
 
   @override
   void didUpdateWidget(covariant ParticleOverlay old) {
     super.didUpdateWidget(old);
-    if (old.mood != widget.mood) _buildParticles();
-  }
-
-  void _buildParticles() {
-    final cfg =
-        particleConfigs[widget.mood] ?? particleConfigs['manifestation']!;
-    final rng = Random(widget.mood.hashCode);
-    _particles = List.generate(
-      cfg.count,
-      (i) => Particle(
-        x: rng.nextDouble(),
-        y: rng.nextDouble(),
-        size: cfg.minSize + rng.nextDouble() * (cfg.maxSize - cfg.minSize),
-        speed: cfg.speedMin + rng.nextDouble() * (cfg.speedMax - cfg.speedMin),
-        phase: rng.nextDouble() * pi * 2,
-        drift: 0.02 + rng.nextDouble() * 0.04,
-        angle: rng.nextDouble() * pi * 2,
-        kind: cfg.kind,
-      ),
-    );
-    _builtForMood = widget.mood;
+    if (old.mood != widget.mood) _buildParticles(_w, _h);
   }
 
   @override
@@ -845,149 +854,271 @@ class _ParticleOverlayState extends State<ParticleOverlay>
     super.dispose();
   }
 
+  double _R(double a, double b) {
+    final rng = Random();
+    return a + rng.nextDouble() * (b - a);
+  }
+
+  void _buildParticles(double w, double h) {
+    _w = w;
+    _h = h;
+    final ptype = moodPTypes[widget.mood] ?? PType.star;
+    final List<HParticle> items = [];
+    int n;
+    switch (ptype) {
+      case PType.star:
+        n = 72;
+        break;
+      case PType.dust:
+        n = 46;
+        break;
+      case PType.gold:
+        n = 30;
+        break;
+      case PType.glitch:
+        n = 58;
+        break;
+      case PType.bubble:
+        n = 34;
+        break;
+    }
+    for (int i = 0; i < n; i++) {
+      switch (ptype) {
+        case PType.star:
+        case PType.gold:
+          items.add(
+            HParticle(
+              x: _R(0, w),
+              y: _R(0, h),
+              s: _R(2, 7),
+              vy: _R(.15, .6),
+              ph: _R(0, 6.28),
+              sp: _R(1.2, 3),
+            ),
+          );
+          break;
+        case PType.dust:
+          items.add(
+            HParticle(
+              x: _R(0, w),
+              y: _R(0, h),
+              s: _R(8, 26),
+              vx: _R(-.18, .18),
+              vy: _R(-.14, .14),
+              a: _R(.05, .16),
+              ph: _R(0, 6.28),
+            ),
+          );
+          break;
+        case PType.glitch:
+          items.add(
+            HParticle(
+              x: _R(0, w),
+              y: _R(0, h),
+              w: _R(3, 46),
+              h: _R(1, 3),
+              t: _R(6, 46),
+              col: Random().nextDouble() < .5 ? widget.accent : widget.accent2,
+            ),
+          );
+          break;
+        case PType.bubble:
+          items.add(
+            HParticle(
+              x: _R(0, w),
+              y: _R(0, h),
+              s: _R(4, 16),
+              vy: _R(.25, .7),
+              wob: _R(.4, 1.2),
+              ph: _R(0, 6.28),
+              a: _R(.1, .3),
+            ),
+          );
+          break;
+      }
+    }
+    _particles = items;
+    _builtForMood = widget.mood;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final cfg =
-        particleConfigs[widget.mood] ?? particleConfigs['manifestation']!;
-    if (_builtForMood != widget.mood) _buildParticles();
+    if (_builtForMood != widget.mood) _buildParticles(_w, _h);
     return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (context, _) => CustomPaint(
-          painter: ParticlePainter(
-            particles: _particles,
-            t: _ctrl.value,
-            color: cfg.color,
-            twinkleSpeed: cfg.twinkleSpeed,
-            motion: cfg.motion,
-          ),
-          size: Size.infinite,
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 0 && constraints.maxHeight > 0) {
+            if (_w != constraints.maxWidth || _h != constraints.maxHeight) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted)
+                  _buildParticles(constraints.maxWidth, constraints.maxHeight);
+              });
+            }
+          }
+          return AnimatedBuilder(
+            animation: _ctrl,
+            builder: (context, _) => CustomPaint(
+              painter: HParticlePainter(
+                particles: _particles,
+                ptype: moodPTypes[widget.mood] ?? PType.star,
+                accent: widget.accent,
+                accent2: widget.accent2,
+                w: constraints.maxWidth,
+                h: constraints.maxHeight,
+              ),
+              size: Size.infinite,
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-class ParticlePainter extends CustomPainter {
-  final List<Particle> particles;
-  final double t; // 0~1 루프
-  final Color color;
-  final double twinkleSpeed;
-  final MotionType motion;
-  ParticlePainter({
+// ★ HTML 원본 drawParticles 로직을 그대로 포팅
+class HParticlePainter extends CustomPainter {
+  final List<HParticle> particles;
+  final PType ptype;
+  final Color accent, accent2;
+  final double w, h;
+
+  HParticlePainter({
     required this.particles,
-    required this.t,
-    required this.color,
-    required this.twinkleSpeed,
-    required this.motion,
+    required this.ptype,
+    required this.accent,
+    required this.accent2,
+    required this.w,
+    required this.h,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final p in particles) {
-      double dx, dy;
+    final time = DateTime.now().millisecondsSinceEpoch / 1000.0;
+    final dt = 1.0; // 프레임당 픽셀 이동량 (HTML 원본: rAF 60fps 기준)
 
-      switch (motion) {
-        case MotionType.radiate:
-          // ★ 중심에서 사방으로 퍼졌다가 다시 작아지며 사라짐 (폭발→리셋 루프)
-          final travel = (t * p.speed * 4 + p.phase / (pi * 2)) % 1.0;
-          final dist = sin(travel * pi) * 0.42; // 0 → 최대 → 0
-          final cx = 0.5 + cos(p.angle) * dist;
-          final cy = 0.5 + sin(p.angle) * dist * 0.8;
-          dx = cx.clamp(0.0, 1.0) * size.width;
-          dy = cy.clamp(0.0, 1.0) * size.height;
-          break;
+    for (int i = 0; i < particles.length; i++) {
+      final p = particles[i];
 
-        case MotionType.drift:
-          // ★ 좌우로 느긋하게 표류하며 위로 아주 천천히
-          final travel = (t * p.speed * 3) % 1.0;
-          final py = (1.0 - travel);
-          final px = p.x + sin(t * pi * 2 * 0.3 + p.phase) * p.drift * 2.5;
-          dx = px.clamp(0.0, 1.0) * size.width;
-          dy = py * size.height;
-          break;
+      if (ptype == PType.star || ptype == PType.gold) {
+        // HTML: p.y -= p.vy; if(p.y < -12){ p.y = h+12; p.x = random*w; }
+        p.y -= p.vy * dt;
+        if (p.y < -12) {
+          p.y = h + 12;
+          p.x = Random().nextDouble() * w;
+        }
 
-        case MotionType.still:
-          // ★ 거의 제자리, 아주 미세하게만 흔들림
-          final px = p.x + sin(t * pi * 2 + p.phase) * p.drift * 0.4;
-          final py = p.y + cos(t * pi * 2 * 0.7 + p.phase) * p.drift * 0.4;
-          dx = px.clamp(0.0, 1.0) * size.width;
-          dy = py.clamp(0.0, 1.0) * size.height;
-          break;
+        final al = (.3 + .7 * (sin(time * p.sp + p.ph)).abs()).clamp(0.0, 1.0);
 
-        case MotionType.glitch:
-          // ★ 지그재그로 움직이다 8단계마다 순간이동
-          final step = (t * p.speed * 10 + p.phase).floor() % 8;
-          final stepRng = Random(p.phase.hashCode + step);
-          final jumpX = stepRng.nextDouble();
-          final jumpY = stepRng.nextDouble();
-          final localT = ((t * p.speed * 10 + p.phase) % 1.0);
-          final zigzag = sin(localT * pi * 6) * 0.02;
-          dx = (jumpX + zigzag).clamp(0.0, 1.0) * size.width;
-          dy = (jumpY).clamp(0.0, 1.0) * size.height;
-          break;
+        Color fillColor;
+        if (ptype == PType.gold) {
+          fillColor = accent;
+        } else {
+          fillColor = (i % 5 == 0)
+              ? accent2
+              : (i % 2 == 1 ? accent : Colors.white);
+        }
 
-        case MotionType.swirl:
-          // ★ 위로 떠오르며 큰 원을 그리듯 표류 (안개)
-          final travel = (t * p.speed * 2.5) % 1.0;
-          final py = (1.0 - travel);
-          final swirl = t * pi * 2 * 0.5 + p.phase;
-          final px = p.x + cos(swirl) * p.drift * 3.0;
-          dx = px.clamp(0.0, 1.0) * size.width;
-          dy = py * size.height;
-          break;
-      }
-
-      final twinkle = (sin(t * pi * 2 * twinkleSpeed + p.phase) + 1) / 2; // 0~1
-      final opacity = (0.25 + twinkle * 0.6).clamp(0.0, 1.0);
-
-      if (p.kind == ParticleKind.star) {
-        final paint = Paint()..color = color.withOpacity(opacity);
-        // 십자 모양 별 반짝임
-        canvas.drawCircle(Offset(dx, dy), p.size * 0.5, paint);
-        final glow = Paint()
-          ..color = color.withOpacity(opacity * 0.4)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-        canvas.drawCircle(Offset(dx, dy), p.size * 1.4, glow);
-        final linePaint = Paint()
-          ..color = color.withOpacity(opacity * 0.8)
-          ..strokeWidth = 0.8;
-        canvas.drawLine(
-          Offset(dx - p.size, dy),
-          Offset(dx + p.size, dy),
-          linePaint,
-        );
-        canvas.drawLine(
-          Offset(dx, dy - p.size),
-          Offset(dx, dy + p.size),
-          linePaint,
-        );
-      } else if (p.kind == ParticleKind.bubble) {
-        final paint = Paint()
-          ..color = color.withOpacity(opacity * 0.35)
-          ..style = PaintingStyle.fill;
-        canvas.drawCircle(Offset(dx, dy), p.size, paint);
-        final ring = Paint()
-          ..color = color.withOpacity(opacity * 0.7)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.8;
-        canvas.drawCircle(Offset(dx, dy), p.size, ring);
-        final highlight = Paint()
-          ..color = Colors.white.withOpacity(opacity * 0.5);
+        canvas.save();
+        final r = p.s;
+        final x = p.x;
+        final y = p.y;
+        // 글로우
         canvas.drawCircle(
-          Offset(dx - p.size * 0.3, dy - p.size * 0.3),
-          p.size * 0.25,
-          highlight,
+          Offset(x, y),
+          r * 2,
+          Paint()
+            ..color = fillColor.withOpacity(al * 0.3)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 1.5),
+        );
+        // 8각별
+        final path = Path();
+        path.moveTo(x, y - r);
+        path.lineTo(x + r * .26, y - r * .26);
+        path.lineTo(x + r, y);
+        path.lineTo(x + r * .26, y + r * .26);
+        path.lineTo(x, y + r);
+        path.lineTo(x - r * .26, y + r * .26);
+        path.lineTo(x - r, y);
+        path.lineTo(x - r * .26, y - r * .26);
+        path.close();
+        canvas.drawPath(path, Paint()..color = fillColor.withOpacity(al));
+        canvas.restore();
+      } else if (ptype == PType.dust) {
+        // HTML: p.x += p.vx; p.y += p.vy; wrap around
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        if (p.x < -30) p.x = w + 30;
+        if (p.x > w + 30) p.x = -30;
+        if (p.y < -30) p.y = h + 30;
+        if (p.y > h + 30) p.y = -30;
+
+        final al = p.a * (.6 + .4 * sin(time * .5 + p.ph));
+        final fillColor = i % 2 == 1 ? accent2 : accent;
+        canvas.drawCircle(
+          Offset(p.x, p.y),
+          p.s,
+          Paint()..color = fillColor.withOpacity(al.clamp(0.0, 1.0)),
+        );
+      } else if (ptype == PType.glitch) {
+        // HTML: p.t -= 1; if(p.t<=0) regenerate
+        p.t -= dt;
+        if (p.t <= 0) {
+          p.x = Random().nextDouble() * w;
+          p.y = Random().nextDouble() * h;
+          p.w = 3 + Random().nextDouble() * 46;
+          p.h = 1 + Random().nextDouble() * 3;
+          p.t = 6 + Random().nextDouble() * 46;
+          p.col = Random().nextDouble() < .5 ? accent : accent2;
+        }
+        canvas.drawRect(
+          Rect.fromLTWH(p.x, p.y, p.w, p.h),
+          Paint()..color = p.col.withOpacity(0.55),
         );
       } else {
-        final paint = Paint()..color = color.withOpacity(opacity * 0.6);
-        canvas.drawCircle(Offset(dx, dy), p.size * 0.5, paint);
+        // bubble
+        // HTML: p.y -= p.vy; p.x += sin(time*p.wob+p.ph)*0.5;
+        p.y -= p.vy * dt;
+        p.x += sin(time * p.wob + p.ph) * 0.5;
+        if (p.y < -p.s) {
+          p.y = h + p.s;
+          p.x = Random().nextDouble() * w;
+        }
+
+        canvas.drawCircle(
+          Offset(p.x, p.y),
+          p.s,
+          Paint()
+            ..color = accent.withOpacity(p.a)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.0,
+        );
+        // 하이라이트 (HTML: accent2 dot)
+        canvas.drawCircle(
+          Offset(p.x - p.s * .3, p.y - p.s * .3),
+          p.s * .18,
+          Paint()..color = accent2.withOpacity((p.a * 1.4).clamp(0.0, 1.0)),
+        );
       }
     }
+    canvas.drawColor(Colors.transparent, BlendMode.dstOver);
   }
 
   @override
-  bool shouldRepaint(covariant ParticlePainter old) => true;
+  bool shouldRepaint(covariant HParticlePainter old) => true;
+}
+
+// particleConfigs는 LED 색상용으로만 유지
+const particleConfigs = {
+  'manifestation': _PInfo(color: Color(0xFFcf8bff)),
+  'soft_life': _PInfo(color: Color(0xFFb06a44)),
+  'that_girl': _PInfo(color: Color(0xFFcba24f)),
+  'cyber_dream': _PInfo(color: Color(0xFF2fe6ff)),
+  'wanderlust': _PInfo(color: Color(0xFF52d6c8)),
+};
+
+class _PInfo {
+  final Color color;
+  const _PInfo({required this.color});
 }
 
 class VisionBoardPage extends StatefulWidget {
@@ -1435,37 +1566,41 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   };
 
   static final moodBackgrounds = {
+    // Claude Design 팔레트 기반 — radial gradient 스타일
     'manifestation': BoardBackground(
       type: BgType.gradient,
-      color1: 0xFF12001f,
-      color2: 0xFF0a0a0a,
-      color3: 0xFF1a0a2e,
+      color1: 0xFF271447,
+      color2: 0xFF0c0718,
+      color3: 0xFF150a30,
       useColor3: true,
     ),
     'soft_life': BoardBackground(
-      type: BgType.dots,
-      color1: 0xFFF7EFE5,
-      color2: 0xFFD4C4B0,
-      patternSize: 22,
+      type: BgType.gradient,
+      color1: 0xFFcdb796,
+      color2: 0xFF8f7a5c,
+      color3: 0xFFead7b8,
+      useColor3: true,
     ),
     'that_girl': BoardBackground(
-      type: BgType.grid,
-      color1: 0xFF080808,
-      color2: 0xFF1e1e1e,
-      patternSize: 28,
+      type: BgType.gradient,
+      color1: 0xFF1a1814,
+      color2: 0xFF050504,
+      color3: 0xFF100e0b,
+      useColor3: true,
     ),
     'cyber_dream': BoardBackground(
       type: BgType.gradient,
-      color1: 0xFF0d0520,
-      color2: 0xFF0a1a33,
-      color3: 0xFF1a0533,
+      color1: 0xFF0c1a3a,
+      color2: 0xFF02040d,
+      color3: 0xFF061336,
       useColor3: true,
     ),
     'wanderlust': BoardBackground(
-      type: BgType.lines,
-      color1: 0xFF0E2A3A,
-      color2: 0xFF1A3D5C,
-      patternSize: 28,
+      type: BgType.gradient,
+      color1: 0xFF103440,
+      color2: 0xFF04161d,
+      color3: 0xFF134552,
+      useColor3: true,
     ),
   };
 
@@ -1825,7 +1960,9 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 
     _selectCard(null);
 
-    // ★ 카트리지 교체 트랜지션: 암전(forward) → 중간에 콘텐츠 교체 → 다시 밝아짐(reverse)
+    // ★ 카트리지 교체 트랜지션
+    // 1. 암전 (350ms) → 2. 콘텐츠 교체 → 3. 밝아짐 (350ms) → 4. 인트로 애니메이션
+    _moodTransitionController.duration = const Duration(milliseconds: 350);
     _moodTransitionController.forward(from: 0).then((_) {
       if (!mounted) return;
       setState(() {
@@ -1837,8 +1974,9 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       _initFloatOffsets();
       _updateFloatSpeed();
       _saveBoard();
+      _moodTransitionController.duration = const Duration(milliseconds: 500);
       _moodTransitionController.reverse();
-      Future.delayed(const Duration(milliseconds: 100), () {
+      Future.delayed(const Duration(milliseconds: 80), () {
         if (mounted) _startIntroAnimation();
       });
     });
@@ -2357,196 +2495,285 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     }
   }
 
+  // ★ Claude Design: 상단 바
   Widget _buildGameHeader() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      color: _theme.deviceBg,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
       child: Row(
         children: [
-          // 나사
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: _theme.buttonBg,
-              shape: BoxShape.circle,
-              border: Border.all(color: _theme.buttonBorder),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            'VISION BOARD',
-            style: TextStyle(
-              color: _theme.accent,
-              fontSize: 11,
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.bold,
-              letterSpacing: 3,
-            ),
-          ),
-          const Spacer(),
-          // 선택된 카드 있으면 "SELECTED" 표시
-          if (selectedIndex != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: _theme.accent.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: _theme.accent),
-              ),
-              child: Text(
-                '▶ CARD ${selectedIndex! + 1}',
-                style: TextStyle(
-                  color: _theme.accent,
-                  fontSize: 8,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: _theme.accent.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: _theme.accent.withOpacity(0.4)),
-            ),
-            child: Text(
-              moodLabels[_currentMood] ?? '',
-              style: TextStyle(
-                color: _theme.accent,
-                fontSize: 8,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          // LED 깜빡임 - 파티클 색상과 연동, 저장 시 빠르게 깜빡임
-          AnimatedBuilder(
-            animation: Listenable.merge([
-              _neonController,
-              _savePulseController,
-            ]),
-            builder: (_, __) {
-              final ledColor =
-                  particleConfigs[_currentMood]?.color ?? _theme.accent;
-              // 저장 펄스가 진행 중이면 빠른 깜빡임을 덧씌움
-              final saveBlink = _savePulseController.isAnimating
-                  ? (sin(_savePulseController.value * pi * 10) + 1) / 2
-                  : 0.0;
-              final glowStrength =
-                  (0.4 + _neonController.value * 0.4 + saveBlink * 0.5).clamp(
+          // 왼쪽: LED + 타이틀
+          Row(
+            children: [
+              AnimatedBuilder(
+                animation: _neonController,
+                builder: (_, __) {
+                  final ledColor = _theme.accent;
+                  final glow = (0.5 + _neonController.value * 0.5).clamp(
                     0.0,
                     1.0,
                   );
-              return Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: ledColor,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: ledColor.withOpacity(glowStrength),
-                      blurRadius: 6 + saveBlink * 6,
+                  return Container(
+                    width: 11,
+                    height: 11,
+                    decoration: BoxDecoration(
+                      color: ledColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: ledColor.withOpacity(glow),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              // VISION BOARD - Press Start 2P 스타일 (Space Mono fallback)
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'VISION',
+                      style: TextStyle(
+                        color: _theme.textPrimary,
+                        fontSize: 13,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' BOARD',
+                      style: TextStyle(
+                        color: _theme.accent,
+                        fontSize: 13,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
                     ),
                   ],
                 ),
-              );
-            },
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: _theme.buttonBg,
-              shape: BoxShape.circle,
-              border: Border.all(color: _theme.buttonBorder),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: _theme.buttonBg,
-              shape: BoxShape.circle,
-              border: Border.all(color: _theme.buttonBorder),
-            ),
+          const Spacer(),
+          // 오른쪽: 현재 무드 배지 + dots
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _theme.accent.withOpacity(0.4)),
+                  color: Colors.white.withOpacity(0.05),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      moodLabels[_currentMood]?.split(' ').first ?? '',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      moodLabels[_currentMood]?.split(' ').last ?? '',
+                      style: TextStyle(
+                        color: _theme.textPrimary,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              // 상태 LED 3개
+              Row(
+                children: [
+                  Container(
+                    width: 9,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _theme.textSecondary.withOpacity(0.5),
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Container(
+                    width: 9,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _theme.textSecondary.withOpacity(0.5),
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  AnimatedBuilder(
+                    animation: _savePulseController,
+                    builder: (_, __) {
+                      final ledColor =
+                          particleConfigs[_currentMood]?.color ?? _theme.accent;
+                      final blink = _savePulseController.isAnimating
+                          ? (sin(_savePulseController.value * pi * 10) + 1) / 2
+                          : 0.0;
+                      return Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: ledColor,
+                          boxShadow: [
+                            BoxShadow(
+                              color: ledColor.withOpacity(0.7 + blink * 0.3),
+                              blurRadius: 8 + blink * 8,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildGameButtons() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      color: _theme.deviceBg,
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 무드 버튼들
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (final entry in moodLabels.entries)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: GameButton3D(
-                    label: entry.value,
-                    width: 72,
-                    height: 26,
-                    isActive: _currentMood == entry.key,
-                    theme: _theme,
-                    fontSize: 7,
-                    onTap: () => _applyMood(entry.key),
-                  ),
+  // ★ Claude Design: 베젤
+  Widget _buildScreenBezel({required Widget child}) {
+    return AnimatedBuilder(
+      animation: _savePulseController,
+      builder: (context, _) {
+        final pulse = (sin(_savePulseController.value * pi)).clamp(0.0, 1.0);
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 700),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: _theme.screenBorder, // bezel color
+            boxShadow: [
+              // inset 효과를 outer shadow로 표현
+              BoxShadow(
+                color: Colors.white.withOpacity(0.06),
+                offset: const Offset(0, 2),
+                blurRadius: 6,
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.6),
+                offset: const Offset(0, -3),
+                blurRadius: 8,
+              ),
+              if (pulse > 0.01)
+                BoxShadow(
+                  color: _theme.glowColor.withOpacity(pulse * 0.9),
+                  blurRadius: 30 + pulse * 30,
+                  spreadRadius: 3,
                 ),
             ],
           ),
-          const SizedBox(height: 10),
-          // 하단 컨트롤
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Stack(
             children: [
-              // ★ 3D D-PAD - 선택된 카드 이동
-              _build3DDPad(),
-              // 중앙 액션 버튼
-              Row(
-                children: [
-                  GameButton3D(
-                    label: 'UPLOAD',
-                    onTap: _pickImage,
-                    width: 58,
-                    height: 28,
-                    theme: _theme,
+              // MOODCOLLAGE 텍스트 (베젤 상단)
+              Positioned(
+                top: -10,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Text(
+                    '— MOODCOLLAGE • DREAMOS v6 —',
+                    style: TextStyle(
+                      color: _theme.textSecondary.withOpacity(0.5),
+                      fontSize: 7,
+                      fontFamily: 'monospace',
+                      letterSpacing: 2,
+                    ),
                   ),
-                  const SizedBox(width: 5),
-                  GameButton3D(
-                    label: 'TEXT',
-                    onTap: () => _showTextDialog(),
-                    width: 46,
-                    height: 28,
-                    theme: _theme,
-                  ),
-                  const SizedBox(width: 5),
-                  GameButton3D(
-                    label: 'BG',
-                    onTap: _showBgDialog,
-                    width: 36,
-                    height: 28,
-                    theme: _theme,
-                  ),
-                ],
+                ),
               ),
-              // 오른쪽 버튼
+              // 화면 본체
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 700),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(11),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.6),
+                      spreadRadius: 2,
+                    ),
+                    BoxShadow(
+                      color: _theme.glowColor.withOpacity(0.4),
+                      blurRadius: 40,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(11),
+                  child: child,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ★ Claude Design: 하단 컨트롤 패널
+  Widget _buildGameButtons() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 무드 선택 버튼 (pill)
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 11,
+            children: [
+              for (final entry in moodLabels.entries)
+                _moodPillButton(entry.key, entry.value),
+            ],
+          ),
+          const SizedBox(height: 14),
+          // D-PAD + 액션 버튼 (3등분 레이아웃)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // D-PAD (왼쪽 고정)
+              _build3DDPad(),
+              const SizedBox(width: 16),
+              // 왼쪽 액션 (중앙)
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _actionBtn(icon: '↑', label: 'UPLOAD', onTap: _pickImage),
+                    const SizedBox(width: 11),
+                    _actionBtn(
+                      icon: 'T',
+                      label: 'TEXT',
+                      onTap: () => _showTextDialog(),
+                    ),
+                    const SizedBox(width: 11),
+                    _actionBtn(icon: '▣', label: 'BG', onTap: _showBgDialog),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              // 오른쪽 액션
               Row(
                 children: [
-                  GameButton3D(
+                  _actionBtn(
+                    icon: '◇',
                     label: 'SAVE',
                     onTap: () async {
                       await _saveBoard();
@@ -2559,19 +2786,16 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                               style: TextStyle(color: _theme.accent),
                             ),
                             duration: const Duration(seconds: 1),
-                            backgroundColor: _theme.deviceBg,
+                            backgroundColor: _theme.screenBorder,
                           ),
                         );
                     },
-                    width: 46,
-                    height: 28,
-                    theme: _theme,
                   ),
-                  const SizedBox(width: 5),
+                  const SizedBox(width: 11),
                   _isExporting
                       ? SizedBox(
-                          width: 46,
-                          height: 28,
+                          width: 48,
+                          height: 53,
                           child: Center(
                             child: SizedBox(
                               width: 14,
@@ -2583,21 +2807,13 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                             ),
                           ),
                         )
-                      : GameButton3D(
-                          label: '↗ PNG',
+                      : _actionBtn(
+                          icon: '↗',
+                          label: 'PNG',
                           onTap: _exportAsPng,
-                          width: 50,
-                          height: 28,
-                          theme: _theme,
                         ),
-                  const SizedBox(width: 5),
-                  GameButton3D(
-                    label: 'RST',
-                    onTap: _confirmReset,
-                    width: 36,
-                    height: 28,
-                    theme: _theme,
-                  ),
+                  const SizedBox(width: 11),
+                  _actionBtn(icon: '↺', label: 'RST', onTap: _confirmReset),
                 ],
               ),
             ],
@@ -2607,101 +2823,164 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     );
   }
 
-  // ★ 3D D-PAD 빌드
+  // ★ Claude Design 스타일 pill 무드 버튼
+  Widget _moodPillButton(String moodKey, String label) {
+    final isActive = _currentMood == moodKey;
+    final parts = label.split(' ');
+    final emoji = parts.isNotEmpty ? parts[0] : '';
+    final text = parts.length > 1 ? parts[1] : label;
+    return GestureDetector(
+      onTap: () => _applyMood(moodKey),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          color: isActive ? _theme.accent : _theme.buttonBg.withOpacity(0.6),
+          border: Border.all(
+            color: isActive
+                ? _theme.accent
+                : _theme.buttonBorder.withOpacity(0.5),
+            width: 1.5,
+          ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: _theme.glowColor,
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : [],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 13)),
+            const SizedBox(width: 5),
+            Text(
+              text,
+              style: TextStyle(
+                color: isActive ? _theme.screenBorder : _theme.textSecondary,
+                fontSize: 11,
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ★ Claude Design 스타일 액션 버튼
+  Widget _actionBtn({
+    required String icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GameButton3D(
+      label: label,
+      onTap: onTap,
+      width: 52,
+      height: 40,
+      theme: _theme,
+      fontSize: 8,
+      isVertical: true,
+      iconText: icon,
+    );
+  }
+
+  // ★ Claude Design D-PAD: 중앙 구슬 + 그라디언트 버튼
   Widget _build3DDPad() {
     const moveStep = 0.018;
+    const size = 108.0;
+    const arm = 38.0;
+    const center = 32.0;
     return SizedBox(
-      width: 80,
-      height: 70,
+      width: size,
+      height: size,
       child: Stack(
-        alignment: Alignment.center,
         children: [
           // 가로 바
           Positioned(
-            top: 22,
+            top: arm,
             left: 0,
-            child: Container(
-              width: 80,
-              height: 26,
-              decoration: BoxDecoration(
-                color: _theme.buttonBg,
-                borderRadius: BorderRadius.circular(3),
-                border: Border.all(color: _theme.buttonBorder),
-                boxShadow: [
-                  BoxShadow(
-                    color: _theme.buttonSide,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-            ),
+            child: _dpadArm(width: size, height: center),
           ),
           // 세로 바
           Positioned(
-            left: 27,
+            left: arm,
             top: 0,
-            child: Container(
-              width: 26,
-              height: 70,
-              decoration: BoxDecoration(
-                color: _theme.buttonBg,
-                borderRadius: BorderRadius.circular(3),
-                border: Border.all(color: _theme.buttonBorder),
-                boxShadow: [
-                  BoxShadow(
-                    color: _theme.buttonSide,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-            ),
+            child: _dpadArm(width: center, height: size),
           ),
-          // 중앙
-          Center(
-            child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: _theme.buttonTop,
-                border: Border.all(color: _theme.buttonBorder),
-              ),
-            ),
-          ),
-          // 방향 버튼들
+          // 방향 버튼
           Positioned(
             top: 0,
-            left: 28,
+            left: arm,
             child: DPadButton3D(
               icon: Icons.keyboard_arrow_up,
               theme: _theme,
               onTap: () => _moveSelectedCard(0, -moveStep),
+              size: center,
             ),
           ),
           Positioned(
             bottom: 0,
-            left: 28,
+            left: arm,
             child: DPadButton3D(
               icon: Icons.keyboard_arrow_down,
               theme: _theme,
               onTap: () => _moveSelectedCard(0, moveStep),
+              size: center,
             ),
           ),
           Positioned(
             left: 0,
-            top: 23,
+            top: arm,
             child: DPadButton3D(
               icon: Icons.keyboard_arrow_left,
               theme: _theme,
               onTap: () => _moveSelectedCard(-moveStep, 0),
+              size: center,
             ),
           ),
           Positioned(
             right: 0,
-            top: 23,
+            top: arm,
             child: DPadButton3D(
               icon: Icons.keyboard_arrow_right,
               theme: _theme,
               onTap: () => _moveSelectedCard(moveStep, 0),
+              size: center,
+            ),
+          ),
+          // ★ 중앙 구슬 (Claude Design: radial gradient accent + glow)
+          Center(
+            child: AnimatedBuilder(
+              animation: _neonController,
+              builder: (_, __) => Container(
+                width: center,
+                height: center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    center: const Alignment(-0.35, -0.35),
+                    radius: 0.8,
+                    colors: [_theme.accent, _theme.buttonBg],
+                  ),
+                  boxShadow: [
+                    BoxShadow(color: _theme.screenBorder, spreadRadius: 3),
+                    BoxShadow(
+                      color: _theme.glowColor.withOpacity(
+                        0.4 + _neonController.value * 0.3,
+                      ),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -2709,33 +2988,22 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     );
   }
 
-  Widget _buildScreenBezel({required Widget child}) {
-    return AnimatedBuilder(
-      animation: _savePulseController,
-      builder: (context, _) {
-        // ★ 저장 시 베젤 가장자리가 무드 색상으로 잠깐 펄스
-        final pulse = (sin(
-          _savePulseController.value * pi,
-        )).clamp(0.0, 1.0); // 0→1→0
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 400),
-          decoration: BoxDecoration(
-            color: _theme.deviceBorder,
-            border: Border.all(color: _theme.screenBorder, width: 2),
-            boxShadow: pulse > 0.01
-                ? [
-                    BoxShadow(
-                      color: _theme.accent.withOpacity(pulse * 0.7),
-                      blurRadius: 18 + pulse * 14,
-                      spreadRadius: 1 + pulse * 2,
-                    ),
-                  ]
-                : [],
-          ),
-          padding: const EdgeInsets.all(3),
-          child: child,
-        );
-      },
+  Widget _dpadArm({required double width, required double height}) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 700),
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [_theme.deviceBorder, _theme.buttonBg],
+        ),
+        boxShadow: [
+          BoxShadow(color: _theme.buttonSide, offset: const Offset(0, 4)),
+        ],
+      ),
     );
   }
 
@@ -2748,415 +3016,725 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       );
 
     return Scaffold(
-      backgroundColor: _theme.deviceBg,
-      body: Column(
-        children: [
-          _buildGameHeader(),
-          Expanded(
-            child: _buildScreenBezel(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final screenW = constraints.maxWidth;
-                  final screenH = constraints.maxHeight;
-                  return GestureDetector(
-                    onTap: () => _selectCard(null),
-                    behavior: HitTestBehavior.translucent,
-                    child: Stack(
-                      children: [
-                        RepaintBoundary(
-                          key: _boardKey,
-                          child: SizedBox(
-                            width: screenW,
-                            height: screenH,
-                            child: Stack(
-                              children: [
-                                Positioned.fill(child: _buildBackground()),
-                                AnimatedBuilder(
-                                  animation: Listenable.merge([
-                                    _introController,
-                                    _floatController,
-                                    _neonController,
-                                    _spotlightController,
-                                    _selectScaleController,
-                                    _spawnController,
-                                  ]),
-                                  builder: (context, _) {
-                                    final spotlightVal =
-                                        _spotlightController.value;
-                                    return Stack(
-                                      children: List.generate(cards.length, (
-                                        index,
-                                      ) {
-                                        final card = cards[index];
-                                        final isSelected =
-                                            selectedIndex == index;
-                                        final px = card.x(screenW);
-                                        final py = card.y(screenH);
-                                        final pw = card.width(screenW);
-                                        final ph = card.height(screenW);
-                                        final total = cards.length.clamp(
-                                          1,
-                                          9999,
-                                        );
-                                        final floatOffset =
-                                            index < _floatOffsets.length
-                                            ? _floatOffsets[index]
-                                            : 0.0;
-                                        final iv = _calcIntroValues(
-                                          index,
-                                          total,
-                                          _introController.value,
-                                          screenW,
-                                          screenH,
-                                          card,
-                                        );
-                                        final introOpacity =
-                                            (iv['opacity']! as double).clamp(
-                                              0.0,
-                                              1.0,
-                                            );
-                                        final scale = (iv['scale']! as double)
-                                            .clamp(0.0, 1.5);
-                                        final introDx = iv['dx']! as double;
-                                        final introDy = iv['dy']! as double;
-                                        final introRotate =
-                                            iv['rotate']! as double;
-                                        final floatBlend = introOpacity.clamp(
-                                          0.0,
-                                          1.0,
-                                        );
-                                        final floatY = isSelected
-                                            ? 0.0
-                                            : sin(
-                                                    _floatController.value *
-                                                            pi +
-                                                        floatOffset,
-                                                  ) *
-                                                  _floatAmplitude *
-                                                  floatBlend;
-                                        final floatRot = isSelected
-                                            ? 0.0
-                                            : sin(
-                                                    _floatController.value *
-                                                            pi +
-                                                        floatOffset +
-                                                        1.0,
-                                                  ) *
-                                                  0.008 *
-                                                  floatBlend;
-                                        final neonFlicker =
-                                            card.style == CardStyle.neon
-                                            ? _neonIntensityBase +
-                                                  sin(
-                                                        _neonController.value *
-                                                                pi *
-                                                                2 +
-                                                            floatOffset,
-                                                      ) *
-                                                      (1.0 - _neonIntensityBase)
-                                            : 1.0;
-
-                                        // ★ 스포트라이트: 선택 안 된 카드 어둡게
-                                        final dimOpacity = selectedIndex != null
-                                            ? (isSelected
-                                                  ? 1.0
-                                                  : (1.0 - spotlightVal * 0.65))
-                                            : 1.0;
-
-                                        // ★ 선택된 카드 확대 - 펄스(바운스) 효과
-                                        final selectCurve = Curves.elasticOut
-                                            .transform(
-                                              _selectScaleController.value,
-                                            );
-                                        final selectScale = isSelected
-                                            ? (1.0 + selectCurve * 0.1)
-                                            : 1.0;
-
-                                        // ★ 드래그 중인 카드 들어올리기 효과
-                                        final isDragging =
-                                            draggingIndex == index;
-                                        final dragScale = isDragging
-                                            ? 1.22
-                                            : 1.0;
-
-                                        // ★ 새로 추가된 카드 - 슬롯에서 톡 튀어나오는 등장 효과
-                                        final isSpawning = spawnIndex == index;
-                                        final spawnT = Curves.elasticOut
-                                            .transform(
-                                              _spawnController.value.clamp(
-                                                0.0,
-                                                1.0,
-                                              ),
-                                            );
-                                        final spawnScale = isSpawning
-                                            ? (0.05 + spawnT * 0.95)
-                                            : 1.0;
-                                        final spawnOpacity = isSpawning
-                                            ? _spawnController.value.clamp(
-                                                0.0,
-                                                1.0,
-                                              )
-                                            : 1.0;
-                                        final spawnRiseY = isSpawning
-                                            ? (1.0 -
-                                                      _spawnController.value
-                                                          .clamp(0.0, 1.0)) *
-                                                  60.0
-                                            : 0.0;
-
-                                        // ★ 드래그 시 카드가 살짝 위로 들리는 느낌
-                                        final dragLift = isDragging
-                                            ? -10.0
-                                            : 0.0;
-
-                                        return Positioned(
-                                          left: px + introDx,
-                                          top:
-                                              py +
-                                              introDy +
-                                              floatY +
-                                              spawnRiseY +
-                                              dragLift,
-                                          child: GestureDetector(
-                                            behavior: HitTestBehavior.opaque,
-                                            onTap: () => _selectCard(
-                                              selectedIndex == index
-                                                  ? null
-                                                  : index,
-                                            ),
-                                            onDoubleTap: () {
-                                              if (card.text != null)
-                                                _showTextDialog(
-                                                  editIndex: index,
-                                                );
-                                            },
-                                            onPanStart: (_) => setState(
-                                              () => draggingIndex = index,
-                                            ),
-                                            onPanUpdate: (d) {
-                                              setState(() {
-                                                card.xRatio =
-                                                    ((card.xRatio * screenW +
-                                                                d.delta.dx) /
-                                                            screenW)
-                                                        .clamp(0.0, 1.0);
-                                                card.yRatio =
-                                                    ((card.yRatio * screenH +
-                                                                d.delta.dy) /
-                                                            screenH)
-                                                        .clamp(0.0, 1.0);
-                                              });
-                                            },
-                                            onPanEnd: (_) {
-                                              setState(
-                                                () => draggingIndex = null,
-                                              );
-                                              _saveBoard();
-                                            },
-                                            child: Opacity(
-                                              opacity:
-                                                  (introOpacity *
-                                                          dimOpacity *
-                                                          spawnOpacity)
-                                                      .clamp(0.0, 1.0),
-                                              child: AnimatedScale(
-                                                scale:
-                                                    scale *
-                                                    selectScale *
-                                                    dragScale *
-                                                    spawnScale,
-                                                duration: const Duration(
-                                                  milliseconds: 90,
-                                                ),
-                                                curve: Curves.easeOut,
-                                                child: AnimatedContainer(
-                                                  duration: const Duration(
-                                                    milliseconds: 90,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    boxShadow: isDragging
-                                                        ? [
-                                                            BoxShadow(
-                                                              color: Colors
-                                                                  .black
-                                                                  .withOpacity(
-                                                                    0.65,
-                                                                  ),
-                                                              blurRadius: 30,
-                                                              offset:
-                                                                  const Offset(
-                                                                    0,
-                                                                    18,
-                                                                  ),
-                                                              spreadRadius: 2,
-                                                            ),
-                                                          ]
-                                                        : [],
-                                                  ),
-                                                  child: Transform.rotate(
-                                                    angle:
-                                                        introRotate + floatRot,
-                                                    child: Stack(
-                                                      clipBehavior: Clip.none,
-                                                      children: [
-                                                        // ★ 선택 시 카드 주변 글로우 테두리
-                                                        if (isSelected)
-                                                          Positioned(
-                                                            left: -3,
-                                                            top: -3,
-                                                            right: -3,
-                                                            bottom: -3,
-                                                            child: Container(
-                                                              decoration: BoxDecoration(
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      4,
-                                                                    ),
-                                                                boxShadow: [
-                                                                  BoxShadow(
-                                                                    color: _theme
-                                                                        .accent
-                                                                        .withOpacity(
-                                                                          0.6 *
-                                                                              spotlightVal,
-                                                                        ),
-                                                                    blurRadius:
-                                                                        16,
-                                                                    spreadRadius:
-                                                                        2,
-                                                                  ),
-                                                                ],
-                                                                border: Border.all(
-                                                                  color: _theme
-                                                                      .accent
-                                                                      .withOpacity(
-                                                                        0.8 *
-                                                                            spotlightVal,
-                                                                      ),
-                                                                  width: 2,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        // 카드 본체
-                                                        card.imageUrl != null ||
-                                                                card.imageBase64 !=
-                                                                    null
-                                                            ? _buildPhotoCard(
-                                                                card,
-                                                                pw,
-                                                                ph,
-                                                              )
-                                                            : _buildSpecialTextCard(
-                                                                text:
-                                                                    card.text!,
-                                                                style:
-                                                                    card.style,
-                                                                textColor: Color(
-                                                                  card.textColor,
-                                                                ),
-                                                                paperColor: Color(
-                                                                  card.paperColor,
-                                                                ),
-                                                                w: pw,
-                                                                h: ph,
-                                                                neonFlicker:
-                                                                    neonFlicker,
-                                                              ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }),
-                                    );
-                                  },
-                                ),
-                                // ★ 반짝이는 파티클 레이어 (카드 위, 무드별 스타일)
-                                Positioned.fill(
-                                  child: ParticleOverlay(mood: _currentMood),
-                                ),
-                                // ★ 무드 전환 트랜지션 (카트리지 교체 느낌: 암전 + 스캔라인)
-                                Positioned.fill(
-                                  child: AnimatedBuilder(
-                                    animation: _moodTransitionController,
-                                    builder: (context, _) => IgnorePointer(
-                                      child: CustomPaint(
-                                        painter: MoodTransitionPainter(
-                                          t: _moodTransitionController.value,
-                                          color: _theme.accent,
-                                        ),
-                                        size: Size.infinite,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (selectedIndex != null &&
-                            selectedIndex! < cards.length)
-                          ..._buildControls(
-                            cards[selectedIndex!],
-                            selectedIndex!,
-                            screenW,
-                            screenH,
-                          ),
-                      ],
-                    ),
-                  );
-                },
+      // ★ Claude Design: page radial gradient (전체 배경)
+      backgroundColor: Colors.transparent,
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 700),
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(0, -1.3),
+            radius: 1.5,
+            colors: [_theme.deviceBg, _theme.deviceBg2],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1400),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _buildConsole(),
               ),
             ),
           ),
-          _buildGameButtons(),
+        ),
+      ),
+    );
+  }
+
+  // ★ Claude Design: 게임기 본체 전체 (shell gradient + 나사 + 광택)
+  Widget _buildConsole() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 700),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const [0.0, 0.14, 1.0],
+          colors: [_theme.deviceBorder, _theme.deviceBg, _theme.deviceBg2],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withOpacity(0.10),
+            offset: const Offset(0, 2),
+            blurRadius: 0,
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.45),
+            offset: const Offset(0, -8),
+            blurRadius: 22,
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.55),
+            offset: const Offset(0, 40),
+            blurRadius: 80,
+          ),
+          BoxShadow(color: Colors.white.withOpacity(0.05), spreadRadius: 1),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // ★ 플라스틱 광택 (상단 + 하단 하이라이트)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.0, 0.22, 0.78, 1.0],
+                    colors: [
+                      Colors.white.withOpacity(0.10),
+                      Colors.transparent,
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.18),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // 나사 4개
+          ..._buildScrews(),
+          // 본체 콘텐츠
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 16, 22, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                _buildGameHeader(),
+                // ★ 화면 영역 - 남은 공간을 모두 채움
+                Expanded(
+                  child: _buildScreenBezel(
+                    child: LayoutBuilder(
+                      builder: (context, inner) {
+                        final screenW = inner.maxWidth;
+                        final screenH = inner.maxHeight;
+                        return GestureDetector(
+                          onTap: () => _selectCard(null),
+                          behavior: HitTestBehavior.translucent,
+                          child: Stack(
+                            children: [
+                              RepaintBoundary(
+                                key: _boardKey,
+                                child: SizedBox(
+                                  width: screenW,
+                                  height: screenH,
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: _buildBackground(),
+                                      ),
+                                      AnimatedBuilder(
+                                        animation: Listenable.merge([
+                                          _introController,
+                                          _floatController,
+                                          _neonController,
+                                          _spotlightController,
+                                          _selectScaleController,
+                                          _spawnController,
+                                        ]),
+                                        builder: (context, _) {
+                                          final spotlightVal =
+                                              _spotlightController.value;
+                                          return Stack(
+                                            children: List.generate(cards.length, (
+                                              index,
+                                            ) {
+                                              final card = cards[index];
+                                              final isSelected =
+                                                  selectedIndex == index;
+                                              final px = card.x(screenW);
+                                              final py = card.y(screenH);
+                                              final pw = card.width(screenW);
+                                              final ph = card.height(screenW);
+                                              final total = cards.length.clamp(
+                                                1,
+                                                9999,
+                                              );
+                                              final floatOffset =
+                                                  index < _floatOffsets.length
+                                                  ? _floatOffsets[index]
+                                                  : 0.0;
+                                              final iv = _calcIntroValues(
+                                                index,
+                                                total,
+                                                _introController.value,
+                                                screenW,
+                                                screenH,
+                                                card,
+                                              );
+                                              final introOpacity =
+                                                  (iv['opacity']! as double)
+                                                      .clamp(0.0, 1.0);
+                                              final scale =
+                                                  (iv['scale']! as double)
+                                                      .clamp(0.0, 1.5);
+                                              final introDx =
+                                                  iv['dx']! as double;
+                                              final introDy =
+                                                  iv['dy']! as double;
+                                              final introRotate =
+                                                  iv['rotate']! as double;
+                                              final floatBlend = introOpacity
+                                                  .clamp(0.0, 1.0);
+                                              final floatY = isSelected
+                                                  ? 0.0
+                                                  : sin(
+                                                          _floatController
+                                                                      .value *
+                                                                  pi +
+                                                              floatOffset,
+                                                        ) *
+                                                        _floatAmplitude *
+                                                        floatBlend;
+                                              final floatRot = isSelected
+                                                  ? 0.0
+                                                  : sin(
+                                                          _floatController
+                                                                      .value *
+                                                                  pi +
+                                                              floatOffset +
+                                                              1.0,
+                                                        ) *
+                                                        0.008 *
+                                                        floatBlend;
+                                              final neonFlicker =
+                                                  card.style == CardStyle.neon
+                                                  ? _neonIntensityBase +
+                                                        sin(
+                                                              _neonController
+                                                                          .value *
+                                                                      pi *
+                                                                      2 +
+                                                                  floatOffset,
+                                                            ) *
+                                                            (1.0 -
+                                                                _neonIntensityBase)
+                                                  : 1.0;
+                                              final dimOpacity =
+                                                  selectedIndex != null
+                                                  ? (isSelected
+                                                        ? 1.0
+                                                        : (1.0 -
+                                                              spotlightVal *
+                                                                  0.65))
+                                                  : 1.0;
+                                              final selectCurve = Curves
+                                                  .elasticOut
+                                                  .transform(
+                                                    _selectScaleController
+                                                        .value,
+                                                  );
+                                              final selectScale = isSelected
+                                                  ? (1.0 + selectCurve * 0.1)
+                                                  : 1.0;
+                                              final isDragging =
+                                                  draggingIndex == index;
+                                              final dragScale = isDragging
+                                                  ? 1.22
+                                                  : 1.0;
+                                              final isSpawning =
+                                                  spawnIndex == index;
+                                              final spawnT = Curves.elasticOut
+                                                  .transform(
+                                                    _spawnController.value
+                                                        .clamp(0.0, 1.0),
+                                                  );
+                                              final spawnScale = isSpawning
+                                                  ? (0.05 + spawnT * 0.95)
+                                                  : 1.0;
+                                              final spawnOpacity = isSpawning
+                                                  ? _spawnController.value
+                                                        .clamp(0.0, 1.0)
+                                                  : 1.0;
+                                              final spawnRiseY = isSpawning
+                                                  ? (1.0 -
+                                                            _spawnController
+                                                                .value
+                                                                .clamp(
+                                                                  0.0,
+                                                                  1.0,
+                                                                )) *
+                                                        60.0
+                                                  : 0.0;
+                                              final dragLift = isDragging
+                                                  ? -10.0
+                                                  : 0.0;
+
+                                              return Positioned(
+                                                left: px + introDx,
+                                                top:
+                                                    py +
+                                                    introDy +
+                                                    floatY +
+                                                    spawnRiseY +
+                                                    dragLift,
+                                                child: GestureDetector(
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  onTap: () => _selectCard(
+                                                    selectedIndex == index
+                                                        ? null
+                                                        : index,
+                                                  ),
+                                                  onDoubleTap: () {
+                                                    if (card.text != null)
+                                                      _showTextDialog(
+                                                        editIndex: index,
+                                                      );
+                                                  },
+                                                  onPanStart: (_) => setState(
+                                                    () => draggingIndex = index,
+                                                  ),
+                                                  onPanUpdate: (d) {
+                                                    setState(() {
+                                                      card.xRatio =
+                                                          ((card.xRatio *
+                                                                          screenW +
+                                                                      d
+                                                                          .delta
+                                                                          .dx) /
+                                                                  screenW)
+                                                              .clamp(0.0, 1.0);
+                                                      card.yRatio =
+                                                          ((card.yRatio *
+                                                                          screenH +
+                                                                      d
+                                                                          .delta
+                                                                          .dy) /
+                                                                  screenH)
+                                                              .clamp(0.0, 1.0);
+                                                    });
+                                                  },
+                                                  onPanEnd: (_) {
+                                                    setState(
+                                                      () =>
+                                                          draggingIndex = null,
+                                                    );
+                                                    _saveBoard();
+                                                  },
+                                                  child: Opacity(
+                                                    opacity:
+                                                        (introOpacity *
+                                                                dimOpacity *
+                                                                spawnOpacity)
+                                                            .clamp(0.0, 1.0),
+                                                    child: AnimatedScale(
+                                                      scale:
+                                                          scale *
+                                                          selectScale *
+                                                          dragScale *
+                                                          spawnScale,
+                                                      duration: const Duration(
+                                                        milliseconds: 90,
+                                                      ),
+                                                      curve: Curves.easeOut,
+                                                      child: AnimatedContainer(
+                                                        duration:
+                                                            const Duration(
+                                                              milliseconds: 90,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          boxShadow: isDragging
+                                                              ? [
+                                                                  BoxShadow(
+                                                                    color: Colors
+                                                                        .black
+                                                                        .withOpacity(
+                                                                          0.65,
+                                                                        ),
+                                                                    blurRadius:
+                                                                        30,
+                                                                    offset:
+                                                                        const Offset(
+                                                                          0,
+                                                                          18,
+                                                                        ),
+                                                                    spreadRadius:
+                                                                        2,
+                                                                  ),
+                                                                ]
+                                                              : [],
+                                                        ),
+                                                        child: Transform.rotate(
+                                                          angle:
+                                                              introRotate +
+                                                              floatRot,
+                                                          child: Stack(
+                                                            clipBehavior:
+                                                                Clip.none,
+                                                            children: [
+                                                              if (isSelected)
+                                                                Positioned(
+                                                                  left: -3,
+                                                                  top: -3,
+                                                                  right: -3,
+                                                                  bottom: -3,
+                                                                  child: Container(
+                                                                    decoration: BoxDecoration(
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                            4,
+                                                                          ),
+                                                                      boxShadow: [
+                                                                        BoxShadow(
+                                                                          color: _theme.glowColor.withOpacity(
+                                                                            0.7 *
+                                                                                spotlightVal,
+                                                                          ),
+                                                                          blurRadius:
+                                                                              16,
+                                                                          spreadRadius:
+                                                                              2,
+                                                                        ),
+                                                                      ],
+                                                                      border: Border.all(
+                                                                        color: _theme
+                                                                            .accent
+                                                                            .withOpacity(
+                                                                              0.8 *
+                                                                                  spotlightVal,
+                                                                            ),
+                                                                        width:
+                                                                            2,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              card.imageUrl !=
+                                                                          null ||
+                                                                      card.imageBase64 !=
+                                                                          null
+                                                                  ? _buildPhotoCard(
+                                                                      card,
+                                                                      pw,
+                                                                      ph,
+                                                                    )
+                                                                  : _buildSpecialTextCard(
+                                                                      text: card
+                                                                          .text!,
+                                                                      style: card
+                                                                          .style,
+                                                                      textColor:
+                                                                          Color(
+                                                                            card.textColor,
+                                                                          ),
+                                                                      paperColor:
+                                                                          Color(
+                                                                            card.paperColor,
+                                                                          ),
+                                                                      w: pw,
+                                                                      h: ph,
+                                                                      neonFlicker:
+                                                                          neonFlicker,
+                                                                    ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }),
+                                          );
+                                        },
+                                      ),
+                                      // 파티클
+                                      Positioned.fill(
+                                        child: ParticleOverlay(
+                                          mood: _currentMood,
+                                          accent: _theme.accent,
+                                          accent2: _theme.accent2,
+                                        ),
+                                      ),
+                                      // ★ bloom (HTML: mix-blend-mode:screen)
+                                      Positioned.fill(
+                                        child: IgnorePointer(
+                                          child: AnimatedBuilder(
+                                            animation:
+                                                _moodTransitionController,
+                                            builder: (_, __) => ColorFiltered(
+                                              colorFilter: ColorFilter.mode(
+                                                Colors.transparent,
+                                                BlendMode.screen,
+                                              ),
+                                              child: CustomPaint(
+                                                painter: _BloomPainter(
+                                                  color: _theme.accent,
+                                                  opacity: 0.55,
+                                                ),
+                                                size: Size.infinite,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // ★ vignette (inset 방식 - 가장자리만 어둡게)
+                                      Positioned.fill(
+                                        child: IgnorePointer(
+                                          child: DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              gradient: RadialGradient(
+                                                radius: 1.1,
+                                                colors: [
+                                                  Colors.transparent,
+                                                  _theme.vigColor.withOpacity(
+                                                    0.55,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // ★ 상단 유리 반사광
+                                      Positioned(
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        height: 80,
+                                        child: IgnorePointer(
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  Colors.white.withOpacity(
+                                                    0.09,
+                                                  ),
+                                                  Colors.transparent,
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (selectedIndex != null &&
+                                  selectedIndex! < cards.length)
+                                ..._buildControls(
+                                  cards[selectedIndex!],
+                                  selectedIndex!,
+                                  screenW,
+                                  screenH,
+                                ),
+                              // ★ 무드 전환 트랜지션 — RepaintBoundary 밖, 맨 위
+                              Positioned.fill(
+                                child: AnimatedBuilder(
+                                  animation: _moodTransitionController,
+                                  builder: (context, _) => IgnorePointer(
+                                    child:
+                                        _moodTransitionController.value > 0.001
+                                        ? CustomPaint(
+                                            painter: MoodTransitionPainter(
+                                              t: _moodTransitionController
+                                                  .value,
+                                              color: _theme.accent,
+                                            ),
+                                            size: Size.infinite,
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ), // Expanded + _buildScreenBezel
+                const SizedBox(height: 16),
+                _buildGameButtons(),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
+  // ★ 나사 4개 (Claude Design 스타일 - radial gradient)
+  List<Widget> _buildScrews() {
+    const s = 9.0;
+    const pad = 14.0;
+    Widget screw(double? top, double? bottom, double? left, double? right) =>
+        Positioned(
+          top: top,
+          bottom: bottom,
+          left: left,
+          right: right,
+          child: Container(
+            width: s,
+            height: s,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const RadialGradient(
+                center: Alignment(-0.3, -0.3),
+                radius: 0.8,
+                colors: [Colors.white, Color(0x80000000)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 1,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+          ),
+        );
+    return [
+      screw(pad, null, pad, null),
+      screw(pad, null, null, pad),
+      screw(null, pad, pad, null),
+      screw(null, pad, null, pad),
+    ];
+  }
+
   Widget _buildPhotoCard(BoardCard card, double w, double h) {
+    // Claude Design 스타일: 무드 테마 cardFrame + 깊은 그림자
     return Container(
       width: w,
       height: h + 24,
       decoration: BoxDecoration(
-        color: const Color(0xFF111111),
-        border: Border.all(color: Colors.white, width: 1.5),
+        color: _theme.cardFrame,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: _theme.cardFrame, width: 4),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.6),
-            blurRadius: 10,
-            offset: const Offset(3, 4),
+            color: Colors.black.withOpacity(0.55),
+            blurRadius: 14,
+            offset: const Offset(3, 6),
+          ),
+          BoxShadow(
+            color: _theme.accent.withOpacity(0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(4, 4, 4, 24),
-        child: card.imageBase64 != null
-            ? Image.memory(
-                base64Decode(card.imageBase64!),
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
-              )
-            : Image.asset(
-                card.imageUrl!,
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  if (wasSynchronouslyLoaded || frame != null) return child;
-                  return AnimatedOpacity(
-                    opacity: frame == null ? 0.0 : 1.0,
-                    duration: const Duration(milliseconds: 300),
-                    child: child,
-                  );
-                },
+      child: Column(
+        children: [
+          // 이미지 영역
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(1),
+              child: card.imageBase64 != null
+                  ? Image.memory(
+                      base64Decode(card.imageBase64!),
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                    )
+                  : Image.asset(
+                      card.imageUrl!,
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                      frameBuilder:
+                          (context, child, frame, wasSynchronouslyLoaded) {
+                            if (wasSynchronouslyLoaded || frame != null)
+                              return child;
+                            return AnimatedOpacity(
+                              opacity: frame == null ? 0.0 : 1.0,
+                              duration: const Duration(milliseconds: 300),
+                              child: child,
+                            );
+                          },
+                    ),
+            ),
+          ),
+          // Claude Design 스타일 캡션 바
+          Container(
+            height: 22,
+            color: _theme.cardFrame,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              _moodCaption(card.imageUrl),
+              style: TextStyle(
+                color: _theme.accentDim,
+                fontSize: 7,
+                fontFamily: 'monospace',
+                letterSpacing: 1.5,
               ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  // Claude Design 스타일 캡션 (무드별 사전 텍스트)
+  static const _captionSets = {
+    'manifestation': [
+      'DREAM HOME',
+      'FIRST CLASS',
+      'NEW ERA',
+      'ABUNDANCE',
+      'GLOW UP',
+      'ALIGNED',
+      'STAGE LIGHT',
+      'SOULMATE',
+      'THE VIEW',
+      'BOSS ERA',
+    ],
+    'soft_life': [
+      'SLOW DAYS',
+      'SOFT HOURS',
+      'GOLDEN AGE',
+      'REST MODE',
+      'PURE JOY',
+      'NOURISH',
+      'PEACE OUT',
+      'BLOOM',
+    ],
+    'that_girl': [
+      '5 A.M',
+      'DISCIPLINE',
+      'HUSTLE MODE',
+      'DEBT FREE',
+      'LEVEL UP',
+      'SHOW UP',
+      'WORK HARD',
+      'ALIGNED',
+    ],
+    'cyber_dream': [
+      'SYSTEM ON',
+      'ENTER VOID',
+      'GLITCH ON',
+      'CTRL+ALT',
+      'NEON LIFE',
+      'OVERRIDE',
+      'UPLOAD',
+      'BOOT UP',
+    ],
+    'wanderlust': [
+      'KEEP MOVING',
+      'OPEN ROADS',
+      'NEW HORIZON',
+      'WANDER ON',
+      'EXPLORE',
+      'DEPARTURE',
+      'FLOW STATE',
+      'ONWARDS',
+    ],
+  };
+
+  String _moodCaption(String? imageUrl) {
+    if (imageUrl == null) return '';
+    final set = _captionSets[_currentMood] ?? _captionSets['manifestation']!;
+    final idx = imageUrl.hashCode.abs() % set.length;
+    return set[idx];
   }
 
   void _showTextDialog({int? editIndex}) {
@@ -3326,7 +3904,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                         Container(
                           width: 160,
                           height: 200,
-                          color: _theme.screenBg,
+                          color: _theme.deviceBg2,
                           child: Center(
                             child: _buildSpecialTextCard(
                               text: controller.text.isEmpty
@@ -4103,6 +4681,31 @@ class MoodTransitionPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant MoodTransitionPainter old) =>
       old.t != t || old.color != color;
+}
+
+class _BloomPainter extends CustomPainter {
+  final Color color;
+  final double opacity;
+  const _BloomPainter({required this.color, required this.opacity});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // HTML: radial-gradient 60% 50% at 50% 6%, accent → transparent
+    // mix-blend-mode: screen → 밝은 부분만 더해짐
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final paint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, -0.88),
+        radius: 0.7,
+        colors: [color.withOpacity(opacity), Colors.transparent],
+      ).createShader(rect)
+      ..blendMode = BlendMode.screen;
+    canvas.drawRect(rect, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BloomPainter old) =>
+      old.color != color || old.opacity != opacity;
 }
 
 class _StickerCurve extends Curve {
