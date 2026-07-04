@@ -7,10 +7,46 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'dart:js_interop';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+
+// ─────────────────────────────────────────────
+// ★ WebAudio 바인딩 (dart:js_interop) — 레트로 신스 효과음용
+// ─────────────────────────────────────────────
+@JS('AudioContext')
+extension type WebAudioContext._(JSObject _) implements JSObject {
+  external factory WebAudioContext();
+  external num get currentTime;
+  external String get state;
+  external JSPromise resume();
+  external WebOscillatorNode createOscillator();
+  external WebGainNode createGain();
+  external JSObject get destination;
+}
+
+@JS()
+extension type WebOscillatorNode._(JSObject _) implements JSObject {
+  external set type(String value);
+  external WebAudioParam get frequency;
+  external void connect(JSObject node);
+  external void start(num when);
+  external void stop(num when);
+}
+
+@JS()
+extension type WebGainNode._(JSObject _) implements JSObject {
+  external WebAudioParam get gain;
+  external void connect(JSObject node);
+}
+
+@JS()
+extension type WebAudioParam._(JSObject _) implements JSObject {
+  external void setValueAtTime(num value, num time);
+  external void exponentialRampToValueAtTime(num value, num time);
+}
 
 // ★ 공유 링크 해시 — Flutter 라우터가 URL을 덮어쓰기 전에 main()에서 캡처
 String initialUrlHash = '';
@@ -1155,6 +1191,10 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   bool _isSharedView = false;
   String? _sharedResultMood; // 공유한 사람의 진단 결과
 
+  // ★ 사운드 (HTML 원본의 WebAudio 블립/차임 포팅)
+  bool _soundOn = true;
+  WebAudioContext? _audioCtx;
+
   final GlobalKey _boardKey = GlobalKey();
   late AnimationController _introController;
   late AnimationController _floatController;
@@ -1825,6 +1865,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   void _selectCard(int? index) {
     setState(() => selectedIndex = index);
     if (index != null) {
+      _pickBlip(true);
       _spotlightController.forward(from: 0);
       _selectScaleController.forward(from: 0);
     } else {
@@ -1844,6 +1885,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   // ★ D-PAD로 카드 이동
   void _moveSelectedCard(double dx, double dy) {
     if (selectedIndex == null || selectedIndex! >= cards.length) return;
+    _dpadBlip();
     setState(() {
       final card = cards[selectedIndex!];
       card.xRatio = (card.xRatio + dx).clamp(0.0, 1.0);
@@ -1960,6 +2002,74 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       ..setAttribute('download', filename)
       ..click();
     html.Url.revokeObjectUrl(url);
+  }
+
+  // ─────────────────────────────────────────────
+  // ★ 사운드 — HTML 원본의 WebAudio 신스 블립/차임 포팅
+  // 브라우저 autoplay 정책상 첫 사용자 클릭 후부터 소리가 남
+  // ─────────────────────────────────────────────
+
+  WebAudioContext? _ensureAudio() {
+    if (!_soundOn) return null;
+    try {
+      _audioCtx ??= WebAudioContext();
+      if (_audioCtx!.state == 'suspended') _audioCtx!.resume();
+      return _audioCtx;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _playTone(
+    double freq,
+    double dur,
+    String type,
+    double peak, [
+    double delay = 0,
+  ]) {
+    final ctx = _ensureAudio();
+    if (ctx == null) return;
+    try {
+      final t0 = ctx.currentTime.toDouble() + delay;
+      final osc = ctx.createOscillator();
+      final gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.03);
+    } catch (_) {}
+  }
+
+  void _buttonBlip() => _playTone(880, .08, 'square', .10);
+  void _dpadBlip() => _playTone(660, .05, 'square', .07);
+  void _pickBlip(bool on) => _playTone(on ? 1180 : 740, .05, 'sine', .06);
+
+  // 무드 전환 차임 — HTML 원본의 시퀀스/파형 그대로
+  void _moodChime(String key) {
+    const seqs = {
+      'manifestation': [523.0, 659.0, 784.0, 988.0],
+      'soft_life': [440.0, 554.0, 659.0],
+      'that_girl': [392.0, 494.0, 587.0],
+      'cyber_dream': [300.0, 600.0, 466.0, 900.0],
+      'wanderlust': [349.0, 415.0, 523.0],
+    };
+    const waves = {
+      'manifestation': 'sine',
+      'soft_life': 'sine',
+      'that_girl': 'triangle',
+      'cyber_dream': 'sawtooth',
+      'wanderlust': 'sine',
+    };
+    final seq = seqs[key] ?? seqs['manifestation']!;
+    final wave = waves[key] ?? 'sine';
+    for (var i = 0; i < seq.length; i++) {
+      _playTone(seq[i], .24, wave, .11, i * 0.09);
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -2162,8 +2272,10 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     setState(() {
       if (_quizPicks.contains(index)) {
         _quizPicks.remove(index);
+        _pickBlip(false);
       } else if (_quizPicks.length < 6) {
         _quizPicks.add(index);
+        _pickBlip(true);
       }
     });
     if (_quizPicks.length == 6) _finishQuiz();
@@ -2184,6 +2296,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         .map((e) => e.key)
         .toList();
     final result = winners[Random().nextInt(winners.length)];
+    _moodChime(result);
     setState(() {
       _quizAnalyzing = false;
       _quizResultMood = result;
@@ -2330,6 +2443,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 
   void _applyMood(String moodKey, {bool force = false}) {
     if (moodKey == _currentMood && !force) return;
+    _moodChime(moodKey);
     final rng = Random(DateTime.now().millisecondsSinceEpoch);
     final screenW = MediaQuery.of(context).size.width;
     final screenH = MediaQuery.of(context).size.height;
@@ -3099,6 +3213,24 @@ class _VisionBoardPageState extends State<VisionBoardPage>
               // 상태 LED 3개
               Row(
                 children: [
+                  // ★ 사운드 토글
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _soundOn = !_soundOn);
+                      if (_soundOn) _buttonBlip();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        _soundOn ? '🔊' : '🔇',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _theme.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   Container(
                     width: 9,
                     height: 9,
@@ -3624,19 +3756,14 @@ class _VisionBoardPageState extends State<VisionBoardPage>
             ],
           ),
           const SizedBox(height: 14),
-          // D-PAD + 액션 버튼 — HTML 원본처럼 flex-wrap (좁은 화면에서 줄바꿈)
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 16,
-            runSpacing: 12,
-            children: [
-              // D-PAD (왼쪽)
-              _build3DDPad(),
-              // 크리에이티브 액션
-              Wrap(
+          // D-PAD + 액션 버튼 — 넓은 화면: 3분할(원본 디자인), 좁은 화면: 가운데 줄바꿈
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 780;
+              final creative = Wrap(
                 spacing: 11,
                 runSpacing: 8,
+                alignment: WrapAlignment.center,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   _actionBtn(icon: '↑', label: 'UPLOAD', onTap: _pickImage),
@@ -3648,11 +3775,11 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                   _actionBtn(icon: '▣', label: 'BG', onTap: _showBgDialog),
                   _actionBtn(icon: '◉', label: 'DIAG', onTap: _startQuiz),
                 ],
-              ),
-              // 유틸 액션
-              Wrap(
+              );
+              final util = Wrap(
                 spacing: 11,
                 runSpacing: 8,
+                alignment: WrapAlignment.center,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   _actionBtn(
@@ -3698,8 +3825,30 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                   _actionBtn(icon: '⌁', label: 'SHARE', onTap: _shareBoard),
                   _actionBtn(icon: '↺', label: 'RST', onTap: _confirmReset),
                 ],
-              ),
-            ],
+              );
+              if (wide) {
+                // Claude Design 원본 레이아웃: D-PAD 왼쪽 / 크리에이티브 중앙 / 유틸 오른쪽
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _build3DDPad(),
+                    const SizedBox(width: 16),
+                    Expanded(child: Center(child: creative)),
+                    const SizedBox(width: 16),
+                    util,
+                  ],
+                );
+              }
+              // 좁은 화면: 전부 가운데 정렬로 줄바꿈
+              return Wrap(
+                alignment: WrapAlignment.center,
+                runAlignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 16,
+                runSpacing: 12,
+                children: [_build3DDPad(), creative, util],
+              );
+            },
           ),
         ],
       ),
@@ -3765,7 +3914,10 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   }) {
     return GameButton3D(
       label: label,
-      onTap: onTap,
+      onTap: () {
+        _buttonBlip();
+        onTap();
+      },
       width: 52,
       height: 40,
       theme: _theme,
