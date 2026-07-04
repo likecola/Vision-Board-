@@ -74,14 +74,30 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 | 🌀 Cyber Dream | Cards glitch between random positions before locking in |
 | 🌍 Wanderlust | Cards rise from below through mist |
 
+### DREAM OS Diagnostic (the quiz that doesn't feel like a quiz)
+- First visit boots into **DIAGNOSTIC MODE**: 20 neutral word cards from all 5 moods, shuffled
+- Tap the 6 cards that pull you — your picks are scored per mood behind the scenes
+- `ANALYZING PATTERN...` scanline beat → result reveal: **YOUR OS: ✨ MANIFESTATION** (etc.)
+- `BUILD MY BOARD ▸` generates a full board in your result mood; `RETRY` reshuffles
+- Re-run anytime with the **DIAG** button; result persisted for compatibility checks
+
+### Share Loop
+- **SHARE** serializes the whole board (mood, cards, layout, background) into the URL hash (`#b=...`) and copies the link — no server, no account
+- Opening a shared link shows the friend's board with an `📡 INCOMING BOARD` banner
+- If you've taken the diagnostic yourself, the banner shows a **mood compatibility line** (e.g. `REST & GRIND — you complete the cycle ☯`)
+- `MAKE MINE ▸` clears the hash and boots you into your own diagnostic
+- Uploaded (base64) images are excluded from links; missing image assets render as mood-gradient placeholder tiles
+
 ### Export
-- Export board as PNG at 2× pixel ratio via browser download
+- **PNG** — board at 2× pixel ratio via browser download
+- **STORY** — 1080×1920 vertical frame for Instagram stories: mood gradient background, glowing board capture, `MY OS` result title, app URL footer
 - Particles included in export; selection UI hidden before capture
 
 ### Persistence
-- Cards, positions, styles, and background saved to browser localStorage
+- Cards, positions, styles, background, and **current mood skin** saved to browser localStorage
 - Uploaded images encoded as base64 and persisted across sessions
 - Ratio-based card positions — responsive to window resize
+- Viewing a shared board never overwrites your own saved board
 
 ---
 
@@ -170,8 +186,15 @@ Images in `imgs/` and `background/` are personal and not tracked in git.
 - [x] Action button layout fixed (D-PAD left, actions center + right)
 - [x] Polaroid cards with mood-matched `cardFrame` color and caption labels
 
-### v1.8 — Next
-- [ ] Quiz flow → mood result → board generation
+### v1.8 — Done
+- [x] DREAM OS diagnostic: pick 6 cards → mood result → board generation (quiz-as-decorating, auto-boots on first visit)
+- [x] Share link — board serialized into URL hash, clipboard copy, `📡 INCOMING BOARD` visitor view
+- [x] Mood compatibility line between your result and a shared board's result
+- [x] STORY export — 1080×1920 vertical PNG for Instagram stories
+- [x] Mood skin persisted with the board (no more reset-to-purple on reload)
+- [x] Placeholder gradient tiles when image assets are missing (shared links / clean clones)
+
+### v1.8.x — Next
 - [ ] Per-mood button depth variation
 - [ ] Tap card to zoom in
 - [ ] Screen shimmer / CRT scanline overlay (Cyber Dream)
