@@ -1,5 +1,7 @@
 # Vision Board ✨
 
+**▶ [Try it live](https://likecola.github.io/Vision-Board-/)** — boots straight into DREAM OS diagnostic mode. Pick 6 cards, get your OS, build your board, share the link.
+
 A personal vision board web app built with Flutter Web. Images and text cards are scattered across the screen in a collage style — fully interactive and persistent. The board lives inside a retro handheld game console frame styled after Claude Design.
 
 Built as a side project to learn Flutter, coming from a Python/AI background.
