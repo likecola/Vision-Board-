@@ -73,9 +73,9 @@ flutter:
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
 
-  # 인트로 전용 폰트 (INTRO_SPEC 폰트 항목). 프로토타입 번들에서 추출했고
-  # Jua는 인트로에 쓰는 글자만 남긴 서브셋이다. 한글 문구를 바꾸면
-  # tools/build_intro_fonts.py 로 다시 만들어야 한다.
+  # UI 폰트 (Claude Design 프로토타입 번들에서 추출). Jua는 앱 소스에 실제로 쓰인
+  # 글자만 남긴 서브셋이라, 한글 문구를 추가·수정하면 아래로 다시 만들어야 한다.
+  #   python tools/build_intro_fonts.py <intro-prototype.html> lib assets/fonts
   fonts:
     - family: PressStart2P
       fonts:
@@ -83,9 +83,14 @@ flutter:
     - family: VT323
       fonts:
         - asset: assets/fonts/VT323-Regular.ttf
+    - family: SpaceMono
+      fonts:
+        - asset: assets/fonts/SpaceMono-Regular.ttf
+        - asset: assets/fonts/SpaceMono-Bold.ttf
+          weight: 700
     - family: Jua
       fonts:
-        - asset: assets/fonts/Jua-intro-subset.ttf
+        - asset: assets/fonts/Jua-subset.ttf
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

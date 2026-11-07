@@ -15,7 +15,8 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 - Console body uses a 3-stop linear gradient (`shellHi → shell1 → shell2`) + plastic sheen overlay + 4 radial-gradient screws — same structure as the Claude Design HTML source
 - Console colors fully re-skin per mood (body, bezel, buttons, accent, text)
 - Top header: `VISION BOARD` logo, current mood pill badge, blinking LED (synced to mood particle color)
-- Bottom panel: mood pill buttons + 3D D-PAD + action buttons (UPLOAD / TEXT / BG / SAVE / PNG / RST)
+- Landscape-first layout: D-PAD on the left, **A/B** + six action buttons (ADD / BG / DIAG / EXPORT / SHARE / RST) on the right so the board fills the window; phones (portrait) stack them below
+- `ADD` = upload a photo or add a text card, `EXPORT` = board PNG or 9:16 story image; saving is automatic
 - 3D physical buttons — layered side + surface with `AnimatedPositioned` press, scanline texture on surface, `shellHi → btnFace` gradient
 - 3D D-PAD — radial-gradient center orb + hold-to-repeat for continuous card movement
 
@@ -76,12 +77,19 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 | 🌀 Cyber Dream | Cards glitch between random positions before locking in |
 | 🌍 Wanderlust | Cards rise from below through mist |
 
+### Boot Intro
+- Opens like a handheld console: **PRESS START** → cartridge rises and clacks into the slot → CRT power-on → typed boot log → `DREAM OS` logo drops in with a ding → **HELLO** from the mascot 꿈별이
+- HELLO only opens once the timeline has finished **and** the board has finished loading
+- Returning visitors get `SKIP ▸▸` / `S`; shared-link visitors skip it entirely (`?intro=0` also skips)
+- Mascot (15×14 pixel art) and cartridge are `CustomPainter`s; all sounds are synthesized with WebAudio — no audio files
+
 ### DREAM OS Diagnostic (the quiz that doesn't feel like a quiz)
-- First visit boots into **DIAGNOSTIC MODE**: 20 neutral word cards from all 5 moods, shuffled
-- Tap the 6 cards that pull you — your picks are scored per mood behind the scenes
-- `ANALYZING PATTERN...` scanline beat → result reveal: **YOUR OS: ✨ MANIFESTATION** (etc.)
-- `BUILD MY BOARD ▸` generates a full board in your result mood; `RETRY` reshuffles
-- Re-run anytime with the **DIAG** button; result persisted for compatibility checks
+- Guided by the mascot: **3 rounds, pick 2 of 6 cards each**, with a speech bubble that reacts to every pick
+- Fully playable with the console: **D-pad** moves, **A** picks / continues, **B** undoes (keyboard: arrows / Enter / Backspace) — or just tap
+- After two picks the focus jumps to the `A NEXT` button, so it is always clear what A does
+- Result is a collectible card: the mascot in a mood **costume**, title, 3 keywords, and a score bar for every mood (`SOFT LIFE 50% · 2nd WANDERLUST 33%`)
+- **Korean first**, English with the `한 | EN` toggle (saved)
+- `BUILD MY BOARD` generates a full board in your result mood; re-run anytime with **DIAG**
 
 ### Share Loop
 - **SHARE** serializes the whole board (mood, cards, layout, background) into the URL hash (`#b=...`) and copies the link — no server, no account
@@ -151,7 +159,7 @@ Vision-Board-/
 └── README.md
 ```
 
-Images in `imgs/` and `background/` are personal and not tracked in git.
+Photos are **not bundled**: photo cards render as mood-colored tiles until you add your own with ADD. (`imgs/` and `background/` are git-ignored; if you add licensed images, re-add the `assets:` entries in `pubspec.yaml`.)
 
 ---
 
@@ -196,12 +204,21 @@ Images in `imgs/` and `background/` are personal and not tracked in git.
 - [x] Mood skin persisted with the board (no more reset-to-purple on reload)
 - [x] Placeholder gradient tiles when image assets are missing (shared links / clean clones)
 
-### v1.8.x — Next
+### v1.9 — Done
+- [x] Console boot intro with pixel mascot and synthesized sound (`lib/intro.dart`, `lib/web_synth.dart`)
+- [x] Landscape-first responsive console (desktop / phone portrait / phone landscape)
+- [x] Diagnosis overhaul: mascot-guided 3 rounds, D-pad/A/B play, collectible result card with costumes, Korean/English
+- [x] Consolidated buttons (ADD / EXPORT sheets, autosave), centered icon + label, Space Mono / Press Start 2P / Jua fonts
+- [x] No bundled photos (license-safe); placeholders + UPLOAD
+
+### v1.9.x — Next
+- [ ] License-cleared photo packs per mood (Openverse CC0 / own photos) with a per-mood color grade
+- [ ] GIF export
+- [ ] Per-mood background music
 - [ ] Per-mood button depth variation
-- [ ] Tap card to zoom in
 - [ ] Screen shimmer / CRT scanline overlay (Cyber Dream)
 
-### v1.9 — Future
+### v2.0 — Future
 - [ ] Riverpod state management
 - [ ] Multiple boards
 - [ ] Firebase storage + Auth

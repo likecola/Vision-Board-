@@ -1,17 +1,18 @@
-"""Extract Press Start 2P / VT323 / Jua from the intro prototype bundle into TTFs.
+"""Extract Press Start 2P / VT323 / Space Mono / Jua from the prototype bundle into TTFs.
 
-Usage: extract_fonts.py <prototype.html> <intro.dart> <out_dir>
+Usage: build_intro_fonts.py <prototype.html> <lib_dir> <out_dir>
 
 * Press Start 2P / VT323: use the latin slice.
+* Space Mono: latin slices for weight 400 and 700.
 * Jua: pick only the unicode-range slices that cover the characters actually used in
-  intro.dart (Hangul + the punctuation Jua renders), then merge them into one TTF.
+  every lib/*.dart (Hangul + the punctuation Jua renders), then merge them into one TTF.
 """
 import base64, io, json, re, sys, tempfile
 from pathlib import Path
 from fontTools.ttLib import TTFont
 from fontTools.merge import Merger
 
-proto, intro_dart, out = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+proto, lib_dir, out = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
 out.mkdir(parents=True, exist_ok=True)
 src = proto.read_text(encoding="utf-8")
 manifest = json.loads(re.search(r'<script type="__bundler/manifest"[^>]*>(.*?)</script>', src, re.S).group(1))
@@ -60,13 +61,20 @@ for family, fname in (("Press Start 2P", "PressStart2P-Regular.ttf"), ("VT323", 
     woff2_to_ttf(latin[0]["uuid"], out / fname)
     print("wrote", fname)
 
+# ── Space Mono (400 / 700) ──
+for wt, fname in (("400", "SpaceMono-Regular.ttf"), ("700", "SpaceMono-Bold.ttf")):
+    latin = [f for f in faces if f["family"] == "Space Mono" and f["weight"] == wt and covers(f, ord("A"))]
+    assert latin, f"no latin slice for Space Mono {wt}"
+    woff2_to_ttf(latin[0]["uuid"], out / fname)
+    print("wrote", fname)
+
 # ── Jua: subset to used characters ──
-dart = intro_dart.read_text(encoding="utf-8")
+dart = "\n".join(p.read_text(encoding="utf-8") for p in sorted(lib_dir.glob("*.dart")))
 # 주석(// ...)은 화면에 그려지지 않으므로 글자 집합에서 제외한다.
 dart = "\n".join(line.split("//")[0] for line in dart.splitlines())
 used = {ord(c) for c in dart if ord(c) >= 0x20}
 # Jua로 그려지는 문자만 필요하지만, 안전하게 소스에 쓰인 한글/기본 라틴/문장부호를 모두 포함.
-need = {cp for cp in used if (0xAC00 <= cp <= 0xD7A3) or cp < 0x2000 or cp in (0x2026, 0x2019, 0x201C, 0x201D)}
+need = {cp for cp in used if (0xAC00 <= cp <= 0xD7A3) or cp < 0x2000 or 0x2010 <= cp <= 0x2030}
 jua = [f for f in faces if f["family"] == "Jua"]
 chosen = {}
 missing = []
@@ -94,8 +102,8 @@ opts.name_IDs = ["*"]
 sub = ftsubset.Subsetter(opts)
 sub.populate(unicodes=sorted(need | {0x20}))
 sub.subset(merged)
-merged.save(out / "Jua-intro-subset.ttf")
-print("wrote Jua-intro-subset.ttf")
+merged.save(out / "Jua-subset.ttf")
+print("wrote Jua-subset.ttf")
 for p in paths:
     Path(p).unlink()
 tmp.rmdir()

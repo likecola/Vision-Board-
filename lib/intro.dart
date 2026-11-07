@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'web_synth.dart';
 
@@ -70,7 +69,8 @@ TextStyle _mono(
   Color color, {
   double ls = 0,
   bool bold = false,
-}) => GoogleFonts.spaceMono(
+}) => TextStyle(
+  fontFamily: 'SpaceMono',
   fontSize: size,
   color: color,
   letterSpacing: ls,
@@ -1337,24 +1337,64 @@ double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 // 마스코트 "꿈별이" — 15×14 픽셀 아트 (CustomPainter)
 // ─────────────────────────────────────────────────────────────
 class Mascot extends StatelessWidget {
-  const Mascot({super.key, required this.px, this.closed = false});
+  const Mascot({super.key, required this.px, this.closed = false, this.costume});
 
   final double px;
   final bool closed;
+
+  /// 무드별 의상 키 (manifestation / soft_life / that_girl / cyber_dream / wanderlust)
+  final String? costume;
 
   @override
   Widget build(BuildContext context) => SizedBox(
     width: 15 * px,
     height: 14 * px,
-    child: CustomPaint(painter: MascotPainter(px: px, closed: closed)),
+    child: CustomPaint(
+      painter: MascotPainter(px: px, closed: closed, costume: costume),
+    ),
   );
 }
 
 class MascotPainter extends CustomPainter {
-  MascotPainter({required this.px, required this.closed});
+  MascotPainter({required this.px, required this.closed, this.costume});
 
   final double px;
   final bool closed;
+  final String? costume;
+
+  /// 의상: (행, 열) → 팔레트 문자. 몸 밖(음수/범위 밖)에도 그릴 수 있다.
+  static const costumes = <String, Map<(int, int), String>>{
+    // 왕관 + 보석
+    'manifestation': {
+      (0, 7): 'C', (1, 7): 'C', (2, 7): 'C',
+      (3, 6): 'C', (3, 7): 'C', (3, 8): 'C',
+      (1, 5): 'W', (1, 9): 'W',
+    },
+    // 새싹 + 잎
+    'soft_life': {
+      (0, 7): 'G', (1, 7): 'G', (2, 7): 'G',
+      (3, 6): 'G', (3, 7): 'G', (3, 8): 'G',
+      (1, 5): 'G', (1, 9): 'G', (0, 6): 'R', (0, 8): 'R',
+    },
+    // 선글라스
+    'that_girl': {
+      (6, 3): 'B', (6, 4): 'B', (6, 5): 'B', (6, 6): 'B', (6, 7): 'B',
+      (6, 8): 'B', (6, 9): 'B', (6, 10): 'B', (6, 11): 'B',
+      (7, 4): 'B', (7, 10): 'B',
+    },
+    // 바이저
+    'cyber_dream': {
+      (6, 3): 'V', (6, 4): 'V', (6, 5): 'V', (6, 6): 'V', (6, 7): 'V',
+      (6, 8): 'V', (6, 9): 'V', (6, 10): 'V', (6, 11): 'V',
+      (7, 4): 'V', (7, 5): 'V', (7, 6): 'V', (7, 7): 'V', (7, 8): 'V',
+      (7, 9): 'V', (7, 10): 'V',
+    },
+    // 목도리
+    'wanderlust': {
+      (9, 4): 'T', (9, 5): 'T', (9, 6): 'T', (9, 7): 'T', (9, 8): 'T',
+      (9, 9): 'T', (9, 10): 'T', (10, 5): 'T', (10, 6): 'T',
+    },
+  };
 
   static const map = [
     '.......K.......',
@@ -1380,6 +1420,12 @@ class MascotPainter extends CustomPainter {
     'E': Color(0xFF2A1450), // 눈
     'P': Color(0xFFFF8FC8), // 볼터치
     'M': Color(0xFF2A1450), // 입
+    'C': Color(0xFFFFB800), // 왕관
+    'G': Color(0xFF5BD16F), // 잎
+    'R': Color(0xFFFF79C6), // 꽃
+    'B': Color(0xFF14101C), // 선글라스
+    'V': Color(0xFF2FE6FF), // 바이저
+    'T': Color(0xFF52D6C8), // 목도리
   };
 
   @override
@@ -1387,13 +1433,15 @@ class MascotPainter extends CustomPainter {
     final paint = Paint()
       ..isAntiAlias = false
       ..filterQuality = FilterQuality.none;
+    final over = costumes[costume] ?? const <(int, int), String>{};
     for (var y = 0; y < map.length; y++) {
       final row = map[y];
       for (var x = 0; x < row.length; x++) {
         var ch = row[x];
-        if (ch == '.') continue;
+        if (ch == '.' && !over.containsKey((y, x))) continue;
         // 감은 눈: 6행 E→Y, 7행 E→K
         if (closed && ch == 'E') ch = y == 6 ? 'Y' : 'K';
+        ch = over[(y, x)] ?? ch;
         paint.color = _palette[ch]!;
         // 배율 축소 시 셀 사이 틈이 생기지 않도록 아주 조금 겹쳐 그린다.
         canvas.drawRect(Rect.fromLTWH(x * px, y * px, px, px).inflate(.3), paint);
@@ -1402,7 +1450,8 @@ class MascotPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(MascotPainter old) => old.px != px || old.closed != closed;
+  bool shouldRepaint(MascotPainter old) =>
+      old.px != px || old.closed != closed || old.costume != costume;
 }
 
 // ─────────────────────────────────────────────────────────────

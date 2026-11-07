@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math';
 import 'dart:convert';
@@ -11,6 +12,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'diagnosis.dart';
+import 'diagnosis_data.dart';
 import 'intro.dart';
 import 'web_synth.dart';
 
@@ -562,31 +565,38 @@ class _GameButton3DState extends State<GameButton3D> {
 
     Widget content;
     if (widget.isVertical && widget.icon != null) {
-      // Claude Design 스타일 수직 버튼 (아이콘 위 + 라벨 아래)
-      content = Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            widget.icon,
-            size: 17,
-            color: widget.isActive
-                ? widget.theme.deviceBg
-                : widget.theme.textPrimary,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            widget.label,
-            style: TextStyle(
-              color: widget.isActive
-                  ? widget.theme.deviceBg
-                  : widget.theme.textSecondary,
-              fontSize: widget.fontSize,
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
+      // Claude Design 스타일 수직 버튼 (아이콘 위 + 라벨 아래) — 면의 정중앙에 배치
+      final fg = widget.isActive
+          ? widget.theme.deviceBg
+          : widget.theme.textPrimary;
+      final fg2 = widget.isActive
+          ? widget.theme.deviceBg
+          : widget.theme.textSecondary;
+      content = Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(widget.icon, size: 19, color: fg),
+            const SizedBox(height: 3),
+            // letterSpacing은 글자 뒤에 붙으므로, 같은 만큼 앞을 띄워 시각적 중앙을 맞춘다.
+            Padding(
+              padding: const EdgeInsets.only(left: 0.8),
+              child: Text(
+                widget.label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: fg2,
+                  fontSize: widget.fontSize,
+                  fontFamily: 'SpaceMono',
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  height: 1.0,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     } else {
       content = Center(
@@ -597,7 +607,7 @@ class _GameButton3DState extends State<GameButton3D> {
                 ? widget.theme.deviceBg
                 : widget.theme.textPrimary,
             fontSize: widget.fontSize,
-            fontFamily: 'monospace',
+            fontFamily: 'SpaceMono',
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -669,6 +679,85 @@ class _GameButton3DState extends State<GameButton3D> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ★ 콘솔 A / B 둥근 버튼 (진단 선택·취소, 보드에서는 카드 이동·해제)
+class RoundPadButton extends StatefulWidget {
+  const RoundPadButton({
+    super.key,
+    required this.label,
+    required this.color,
+    required this.theme,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color color;
+  final MoodTheme theme;
+  final VoidCallback onTap;
+
+  @override
+  State<RoundPadButton> createState() => _RoundPadButtonState();
+}
+
+class _RoundPadButtonState extends State<RoundPadButton> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.color;
+    final dark = Color.lerp(c, Colors.black, .45)!;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          button: true,
+          label: '${widget.label} button',
+          child: GestureDetector(
+            onTapDown: (_) => setState(() => _down = true),
+            onTapUp: (_) => setState(() => _down = false),
+            onTapCancel: () => setState(() => _down = false),
+            onTap: widget.onTap,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 60),
+                width: 50,
+                height: 50,
+                transform: Matrix4.translationValues(0, _down ? 4 : 0, 0),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    center: const Alignment(-.24, -.36),
+                    radius: .9,
+                    colors: [Color.lerp(c, Colors.white, .25)!, c],
+                  ),
+                  boxShadow: [
+                    BoxShadow(color: dark, offset: Offset(0, _down ? 1 : 5)),
+                    if (!_down)
+                      const BoxShadow(
+                        color: Color(0x66000000),
+                        offset: Offset(0, 8),
+                        blurRadius: 12,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          widget.label,
+          style: TextStyle(
+            fontFamily: 'PressStart2P',
+            fontSize: 9,
+            color: widget.theme.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1200,15 +1289,16 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 
   // ★ DREAM OS 진단 (심리테스트) 상태
   bool _showQuiz = false;
-  bool _quizAnalyzing = false;
-  String? _quizResultMood; // 방금 나온 진단 결과 (결과 화면 표시용)
   String? _myResultMood; // 저장된 내 진단 결과 (궁합 계산용)
-  List<(String, String)> _quizDeck = []; // (문구, 무드키) 셔플된 카드 덱
-  final Set<int> _quizPicks = {}; // 선택한 덱 인덱스
+  final _diagController = DiagnosisController();
 
   // ★ 공유 보드 뷰 상태
   bool _isSharedView = false;
   String? _sharedResultMood; // 공유한 사람의 진단 결과
+
+  // 번들에 실제로 포함된 에셋 경로. 없는 이미지는 요청하지 않고 바로 타일로 그린다(404 방지).
+  Set<String> _assetKeys = const {};
+  bool _hasAsset(String? path) => path != null && _assetKeys.contains(path);
 
   // ★ 사운드는 인트로와 공유하는 WebSynth를 쓴다 (lib/web_synth.dart)
   bool get _soundOn => WebSynth.instance.enabled;
@@ -1723,92 +1813,19 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     'wanderlust': '🌍 WNDRL',
   };
 
-  // ★ DREAM OS 진단 — 카드 덱 (무드가 드러나지 않게 중립적으로 렌더링)
-  static const quizWords = {
-    'manifestation': [
-      'main character energy',
-      "it's already mine",
-      'the spotlight finds me',
-      'ABUNDANCE',
-    ],
-    'soft_life': [
-      'slow mornings',
-      'fresh linen & warm tea',
-      'a long bath, no clock',
-      'rest is productive',
-    ],
-    'that_girl': [
-      '5 A.M. RUN',
-      'DISCIPLINE',
-      'all black everything',
-      'checklist: done.',
-    ],
-    'cyber_dream': [
-      'neon city nights',
-      'glitch the system',
-      'LEVEL UP',
-      'dream in pixels',
-    ],
-    'wanderlust': [
-      'a night train somewhere',
-      'old maps & new stamps',
-      'the horizon keeps calling',
-      'no fixed address',
-    ],
-  };
-
-  // ★ 진단 결과 — (이모지, 타이틀, 설명)
-  static const quizResults = {
-    'manifestation': (
-      '✨',
-      'MANIFESTATION',
-      'Big dreams, louder reality.\nYou speak things into existence.',
-    ),
-    'soft_life': (
-      '🌿',
-      'SOFT LIFE',
-      'Peace is your luxury.\nYou bloom at your own pace.',
-    ),
-    'that_girl': (
-      '💪',
-      'THAT GIRL',
-      'Discipline is your love language.\nYou show up, every single day.',
-    ),
-    'cyber_dream': (
-      '🌀',
-      'CYBER DREAM',
-      'Reality is a suggestion.\nYou live ten years in the future.',
-    ),
-    'wanderlust': (
-      '🌍',
-      'WANDERLUST',
-      'Home is a moving target.\nThe horizon keeps calling you.',
-    ),
-  };
-
-  // ★ 공유 보드 궁합 문구 — 정렬된 무드 페어 키 ("a+b")
-  static const _compatLines = {
-    'cyber_dream+manifestation': 'DREAM AMPLIFIERS — you charge each other ⚡',
-    'manifestation+soft_life': 'FIRE & WATER — balance unlocked 🔮',
-    'manifestation+that_girl': 'POWER DUO — unstoppable together 👑',
-    'manifestation+wanderlust': 'DREAMERS ON THE MOVE — go far 🚀',
-    'cyber_dream+soft_life': 'LOGIN & LOG OFF — opposites that sync 🌗',
-    'soft_life+that_girl': 'REST & GRIND — you complete the cycle ☯',
-    'soft_life+wanderlust': 'SLOW TRAVELERS — same gentle pace 🍃',
-    'cyber_dream+that_girl': 'FUTURE CEOs — systems + hustle 📈',
-    'that_girl+wanderlust': 'DISCIPLINED NOMADS — freedom, earned 🧭',
-    'cyber_dream+wanderlust': 'SIGNAL SEEKERS — always exploring 📡',
-  };
-
-  String _compatLine(String a, String b) {
-    if (a == b) return 'SAME FREQUENCY — 100% sync 💯';
-    final key = ([a, b]..sort()).join('+');
-    return _compatLines[key] ?? 'RARE PAIR — uncharted combo 🌌';
+  Future<void> _onLangChanged() async {
+    if (mounted) setState(() {});
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('lang', appLang.value);
   }
 
   @override
   void initState() {
     super.initState();
+    appLang.addListener(_onLangChanged);
+    AssetManifest.loadFromAssetBundle(rootBundle).then((m) {
+      if (mounted) setState(() => _assetKeys = m.listAssets().toSet());
+    });
     _introController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2200),
@@ -1846,6 +1863,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 
   @override
   void dispose() {
+    appLang.removeListener(_onLangChanged);
     _introController.dispose();
     _floatController.dispose();
     _neonController.dispose();
@@ -1902,6 +1920,18 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 
   // ★ D-PAD로 카드 이동
   void _moveSelectedCard(double dx, double dy) {
+    if (_showQuiz) {
+      _diagController.press(
+        dx < 0
+            ? DiagKey.left
+            : dx > 0
+            ? DiagKey.right
+            : dy < 0
+            ? DiagKey.up
+            : DiagKey.down,
+      );
+      return;
+    }
     if (selectedIndex == null || selectedIndex! >= cards.length) return;
     _dpadBlip();
     setState(() {
@@ -1921,6 +1951,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   Future<void> _loadBoard() async {
     final prefs = await SharedPreferences.getInstance();
     _myResultMood = prefs.getString('quiz_result');
+    final savedLang = prefs.getString('lang');
+    if (savedLang == 'en' || savedLang == 'ko') appLang.value = savedLang!;
 
     // ★ 공유 링크(#b=)로 들어온 경우 — 공유된 보드를 우선 표시
     if (_loadFromHash()) {
@@ -2060,6 +2092,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         FontWeight weight = FontWeight.bold,
         double letterSpacing = 3,
         List<Shadow>? shadows,
+        String fam = 'SpaceMono',
       }) {
         final tp = TextPainter(
           text: TextSpan(
@@ -2067,7 +2100,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
             style: TextStyle(
               color: color ?? t.textPrimary,
               fontSize: size,
-              fontFamily: 'monospace',
+              fontFamily: fam,
               fontWeight: weight,
               letterSpacing: letterSpacing,
               height: 1.5,
@@ -2092,9 +2125,10 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       drawCenteredText(
         'VISION BOARD',
         170,
-        size: 58,
+        size: 52,
         color: t.accent,
-        letterSpacing: 8,
+        letterSpacing: 6,
+        fam: 'PressStart2P',
         shadows: [Shadow(color: t.glowColor, blurRadius: 40)],
       );
 
@@ -2127,32 +2161,34 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       );
 
       // 무드 결과 텍스트
-      final result = quizResults[_currentMood];
+      final dm = diagMoods[_currentMood];
       double y = dst.bottom + 70;
-      if (result != null) {
-        final (emoji, title, desc) = result;
+      if (dm != null) {
         y = drawCenteredText(
-          'MY OS',
+          tr('나의 OS', 'MY OS'),
           y,
-          size: 20,
+          size: 24,
           color: t.textSecondary,
           weight: FontWeight.normal,
-          letterSpacing: 6,
+          letterSpacing: 4,
+          fam: 'Jua',
         );
         y = drawCenteredText(
-          '$emoji  $title',
-          y + 14,
-          size: 44,
+          '${dm.emoji}  ${dm.title}',
+          y + 10,
+          size: 56,
           color: t.accent,
-          letterSpacing: 5,
+          letterSpacing: 2,
           shadows: [Shadow(color: t.glowColor, blurRadius: 30)],
+          fam: 'Jua',
         );
         drawCenteredText(
-          desc,
-          y + 20,
-          size: 22,
+          dm.desc,
+          y + 16,
+          size: 28,
           weight: FontWeight.normal,
-          letterSpacing: 1,
+          letterSpacing: 0,
+          fam: 'Jua',
         );
       }
 
@@ -2197,76 +2233,62 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   }
 
   // ─────────────────────────────────────────────
-  // ★ DREAM OS 진단 — 꾸미기가 곧 테스트
-  // 끌리는 카드 6장을 고르면 무드 성향을 분석해 보드를 생성
+  // ★ DREAM OS 진단 — lib/diagnosis.dart 의 DiagnosisScreen을 연결한다.
   // ─────────────────────────────────────────────
 
   void _startQuiz() {
-    final deck = <(String, String)>[];
-    quizWords.forEach((mood, words) {
-      for (final w in words) deck.add((w, mood));
-    });
-    deck.shuffle(Random());
     _selectCard(null);
-    setState(() {
-      _quizDeck = deck;
-      _quizPicks.clear();
-      _quizAnalyzing = false;
-      _quizResultMood = null;
-      _showQuiz = true;
-    });
+    setState(() => _showQuiz = true);
   }
 
-  void _toggleQuizPick(int index) {
-    if (_quizAnalyzing || _quizResultMood != null) return;
-    setState(() {
-      if (_quizPicks.contains(index)) {
-        _quizPicks.remove(index);
-        _pickBlip(false);
-      } else if (_quizPicks.length < 6) {
-        _quizPicks.add(index);
-        _pickBlip(true);
-      }
-    });
-    if (_quizPicks.length == 6) _finishQuiz();
+  Future<void> _onDiagResult(String mood, Map<String, int> scores) async {
+    WebSynth.instance.moodChime(mood);
+    setState(() => _myResultMood = mood);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('quiz_result', mood);
+    await prefs.setString('quiz_scores', jsonEncode(scores));
+    await prefs.setBool('quiz_done', true);
   }
 
-  Future<void> _finishQuiz() async {
-    setState(() => _quizAnalyzing = true);
-    await Future.delayed(const Duration(milliseconds: 1600));
-    if (!mounted) return;
-    final scores = <String, int>{};
-    for (final i in _quizPicks) {
-      final mood = _quizDeck[i].$2;
-      scores[mood] = (scores[mood] ?? 0) + 1;
+  void _onDiagBuild(String mood) {
+    setState(() => _showQuiz = false);
+    _applyMood(mood, force: true);
+  }
+
+  Future<void> _onDiagClose() async {
+    setState(() => _showQuiz = false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('quiz_done', true);
+  }
+
+  DiagPalette _diagPalette(String mood) {
+    final t = moodThemes[mood] ?? _theme;
+    return DiagPalette(
+      accent: t.accent,
+      accent2: t.accent2,
+      text: t.textPrimary,
+      muted: t.textSecondary,
+      bg: t.screenBorder,
+      glow: t.glowColor,
+    );
+  }
+
+  // 콘솔 A / B — 진단 중엔 진단 조작, 보드에서는 카드 선택 이동 / 해제
+  void _consoleA() {
+    if (_showQuiz) {
+      _diagController.press(DiagKey.a);
+      return;
     }
-    final top = scores.values.reduce(max);
-    final winners = scores.entries
-        .where((e) => e.value == top)
-        .map((e) => e.key)
-        .toList();
-    final result = winners[Random().nextInt(winners.length)];
-    _moodChime(result);
-    setState(() {
-      _quizAnalyzing = false;
-      _quizResultMood = result;
-      _myResultMood = result;
-    });
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('quiz_result', result);
-    await prefs.setBool('quiz_done', true);
+    if (cards.isEmpty) return;
+    _selectCard(((selectedIndex ?? -1) + 1) % cards.length);
   }
 
-  void _acceptQuizResult() {
-    final mood = _quizResultMood;
-    setState(() => _showQuiz = false);
-    if (mood != null) _applyMood(mood, force: true);
-  }
-
-  Future<void> _skipQuiz() async {
-    setState(() => _showQuiz = false);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('quiz_done', true);
+  void _consoleB() {
+    if (_showQuiz) {
+      _diagController.press(DiagKey.b);
+      return;
+    }
+    _selectCard(null);
   }
 
   // ─────────────────────────────────────────────
@@ -2363,7 +2385,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           SnackBar(
             content: Text(
               'LINK COPIED 🔗 send it to a friend',
-              style: TextStyle(color: _theme.accent, fontFamily: 'monospace'),
+              style: TextStyle(color: _theme.accent, fontFamily: 'SpaceMono'),
             ),
             duration: const Duration(seconds: 2),
             backgroundColor: _theme.screenBorder,
@@ -2724,7 +2746,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           style: TextStyle(
             color: _theme.textPrimary,
             fontSize: 14,
-            fontFamily: 'monospace',
+            fontFamily: 'SpaceMono',
           ),
         ),
         content: Text(
@@ -2908,7 +2930,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           base64Decode(background.imageBase64!),
           fit: BoxFit.cover,
         );
-      if (background.imageAsset != null)
+      if (background.imageAsset != null && _hasAsset(background.imageAsset))
         return Image.asset(
           background.imageAsset!,
           fit: BoxFit.cover,
@@ -3106,7 +3128,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       style: TextStyle(
                         color: _theme.textPrimary,
                         fontSize: 13,
-                        fontFamily: 'monospace',
+                        fontFamily: 'SpaceMono',
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1,
                       ),
@@ -3116,7 +3138,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       style: TextStyle(
                         color: _theme.accent,
                         fontSize: 13,
-                        fontFamily: 'monospace',
+                        fontFamily: 'SpaceMono',
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1,
                       ),
@@ -3154,7 +3176,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       style: TextStyle(
                         color: _theme.textPrimary,
                         fontSize: 11,
-                        fontFamily: 'monospace',
+                        fontFamily: 'SpaceMono',
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1,
                       ),
@@ -3283,7 +3305,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     style: TextStyle(
                       color: _theme.textSecondary.withOpacity(0.5),
                       fontSize: 7,
-                      fontFamily: 'monospace',
+                      fontFamily: 'SpaceMono',
                       letterSpacing: 2,
                     ),
                   ),
@@ -3318,325 +3340,14 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   }
 
   // ─────────────────────────────────────────────
-  // ★ DREAM OS 진단 오버레이 (화면 베젤 안쪽에 표시)
-  // ─────────────────────────────────────────────
-  Widget _buildQuizOverlay(double screenW, double screenH) {
-    final t = _theme;
-    Widget body;
-    if (_quizResultMood != null) {
-      body = _buildQuizResult();
-    } else if (_quizAnalyzing) {
-      body = _buildQuizAnalyzing();
-    } else {
-      body = _buildQuizDeck(screenW);
-    }
-    return Positioned.fill(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: const Alignment(0, -0.6),
-            radius: 1.6,
-            colors: [
-              t.screenBorder.withOpacity(0.96),
-              Colors.black.withOpacity(0.97),
-            ],
-          ),
-        ),
-        child: body,
-      ),
-    );
-  }
-
-  Widget _quizHeader() {
-    final t = _theme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 14, 12, 0),
-      child: Row(
-        children: [
-          AnimatedBuilder(
-            animation: _neonController,
-            builder: (_, __) => Text(
-              '▮',
-              style: TextStyle(
-                color: t.accent.withOpacity(
-                  _neonController.value > 0.5 ? 1 : 0.15,
-                ),
-                fontSize: 12,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'DREAM OS — DIAGNOSTIC MODE',
-            style: TextStyle(
-              color: t.accent,
-              fontSize: 11,
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
-            ),
-          ),
-          const Spacer(),
-          if (_quizResultMood == null && !_quizAnalyzing)
-            GestureDetector(
-              onTap: _skipQuiz,
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: Text(
-                  'SKIP ▸',
-                  style: TextStyle(
-                    color: t.textSecondary.withOpacity(0.7),
-                    fontSize: 10,
-                    fontFamily: 'monospace',
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuizDeck(double screenW) {
-    final t = _theme;
-    final cardW = (screenW / 5.6).clamp(120.0, 168.0);
-    return Column(
-      children: [
-        _quizHeader(),
-        const SizedBox(height: 10),
-        Text(
-          'TAP THE 6 CARDS THAT PULL YOU',
-          style: TextStyle(
-            color: t.textPrimary,
-            fontSize: 13,
-            fontFamily: 'monospace',
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 8),
-        // 진행 LED 6개
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(6, (i) {
-            final lit = i < _quizPicks.length;
-            return Container(
-              width: 8,
-              height: 8,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: lit ? t.accent : t.textSecondary.withOpacity(0.25),
-                boxShadow: lit
-                    ? [BoxShadow(color: t.glowColor, blurRadius: 8)]
-                    : [],
-              ),
-            );
-          }),
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 10,
-              runSpacing: 10,
-              children: List.generate(_quizDeck.length, (i) {
-                final picked = _quizPicks.contains(i);
-                return GestureDetector(
-                  onTap: () => _toggleQuizPick(i),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: cardW,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 16,
-                    ),
-                    transform: Matrix4.identity()
-                      ..scale(picked ? 1.05 : 1.0),
-                    transformAlignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: picked
-                          ? t.accent.withOpacity(0.16)
-                          : Colors.white.withOpacity(0.04),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: picked
-                            ? t.accent
-                            : t.textSecondary.withOpacity(0.35),
-                        width: picked ? 1.6 : 1,
-                      ),
-                      boxShadow: picked
-                          ? [BoxShadow(color: t.glowColor, blurRadius: 14)]
-                          : [],
-                    ),
-                    child: Text(
-                      _quizDeck[i].$1,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: picked ? t.accent : t.textPrimary,
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                        letterSpacing: 0.5,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuizAnalyzing() {
-    final t = _theme;
-    return Column(
-      children: [
-        _quizHeader(),
-        Expanded(
-          child: Center(
-            child: AnimatedBuilder(
-              animation: _neonController,
-              builder: (_, __) {
-                final dots = '·' * ((_neonController.value * 4).floor() + 1);
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '◉',
-                      style: TextStyle(
-                        color: t.accent.withOpacity(
-                          0.4 + _neonController.value * 0.6,
-                        ),
-                        fontSize: 40,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'ANALYZING PATTERN $dots',
-                      style: TextStyle(
-                        color: t.textPrimary,
-                        fontSize: 13,
-                        fontFamily: 'monospace',
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'reading 6 signals',
-                      style: TextStyle(
-                        color: t.textSecondary,
-                        fontSize: 10,
-                        fontFamily: 'monospace',
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuizResult() {
-    final t = _theme;
-    final (emoji, title, desc) =
-        quizResults[_quizResultMood] ?? quizResults['manifestation']!;
-    final resultTheme = moodThemes[_quizResultMood] ?? t;
-    return Column(
-      children: [
-        _quizHeader(),
-        Expanded(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'YOUR OS',
-                    style: TextStyle(
-                      color: t.textSecondary,
-                      fontSize: 10,
-                      fontFamily: 'monospace',
-                      letterSpacing: 3,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(emoji, style: const TextStyle(fontSize: 46)),
-                  const SizedBox(height: 10),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: resultTheme.accent,
-                      fontSize: 26,
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 3,
-                      shadows: [
-                        Shadow(color: resultTheme.glowColor, blurRadius: 24),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    desc,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: t.textPrimary,
-                      fontSize: 12,
-                      fontFamily: 'monospace',
-                      height: 1.6,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 26),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      GameButton3D(
-                        label: 'BUILD MY BOARD ▸',
-                        onTap: _acceptQuizResult,
-                        width: 160,
-                        height: 36,
-                        theme: resultTheme,
-                        fontSize: 10,
-                        isActive: true,
-                      ),
-                      const SizedBox(width: 14),
-                      GameButton3D(
-                        label: '↺ RETRY',
-                        onTap: _startQuiz,
-                        width: 80,
-                        height: 36,
-                        theme: t,
-                        fontSize: 10,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ─────────────────────────────────────────────
   // ★ 공유 보드 배너 (친구 링크로 들어왔을 때)
   // ─────────────────────────────────────────────
   Widget _buildSharedBanner() {
     final t = _theme;
-    final sharedLabel = quizResults[_sharedResultMood]?.$2;
+    final sharedMood = diagMoods[_sharedResultMood];
+    final sharedLabel = sharedMood == null ? null : sharedMood.title;
     final compat = (_myResultMood != null && _sharedResultMood != null)
-        ? _compatLine(_myResultMood!, _sharedResultMood!)
+        ? compatLine(_myResultMood!, _sharedResultMood!)
         : null;
     return Positioned(
       top: 12,
@@ -3656,12 +3367,12 @@ class _VisionBoardPageState extends State<VisionBoardPage>
             children: [
               Text(
                 sharedLabel != null
-                    ? '📡 INCOMING BOARD — $sharedLabel OS'
-                    : '📡 INCOMING BOARD',
+                    ? tr('📡 친구의 보드 — $sharedLabel', '📡 INCOMING BOARD — $sharedLabel')
+                    : tr('📡 친구의 보드', '📡 INCOMING BOARD'),
                 style: TextStyle(
                   color: t.accent,
                   fontSize: 11,
-                  fontFamily: 'monospace',
+                  fontFamily: 'SpaceMono',
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.5,
                 ),
@@ -3673,14 +3384,14 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                   style: TextStyle(
                     color: t.textPrimary,
                     fontSize: 10,
-                    fontFamily: 'monospace',
+                    fontFamily: 'SpaceMono',
                     letterSpacing: 0.5,
                   ),
                 ),
               ],
               const SizedBox(height: 8),
               GameButton3D(
-                label: 'MAKE MINE ▸',
+                label: tr('나도 만들기 ▸', 'MAKE MINE ▸'),
                 onTap: _exitSharedView,
                 width: 110,
                 height: 30,
@@ -4140,7 +3851,14 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                 _buildSharedBanner(),
                               // ★ DREAM OS 진단 오버레이 — 항상 최상단
                               if (_showQuiz)
-                                _buildQuizOverlay(screenW, screenH),
+                                DiagnosisScreen(
+                                  palette: _diagPalette(_currentMood),
+                                  paletteOf: _diagPalette,
+                                  controller: _diagController,
+                                  onResult: _onDiagResult,
+                                  onBuild: _onDiagBuild,
+                                  onClose: _onDiagClose,
+                                ),
                             ],
                           ),
                         );
@@ -4149,14 +3867,66 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                   );
   }
 
-  // ★ 가로 화면: [D-PAD] [ 보드 화면 ] [ 버튼 3×3 ]
+  // A / B — 기울어진 둥근 버튼 (콘솔 오른쪽 위)
+  Widget _buildAbCluster() {
+    return Transform.rotate(
+      angle: -18 * pi / 180,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 22),
+            child: RoundPadButton(
+              label: 'B',
+              color: _theme.accent,
+              theme: _theme,
+              onTap: () {
+                if (!_showQuiz) _buttonBlip();
+                _consoleB();
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          RoundPadButton(
+            label: 'A',
+            color: _theme.accent2,
+            theme: _theme,
+            onTap: () {
+              if (!_showQuiz) _buttonBlip();
+              _consoleA();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // A/B + 버튼 3×2 묶음
+  Widget _buildRightDeck() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildAbCluster(),
+        const SizedBox(height: 14),
+        _buildActionGrid(),
+      ],
+    );
+  }
+
+  // ★ 가로 화면: [D-PAD] [ 보드 화면 ] [ A·B + 버튼 3×2 ]
   Widget _buildLandscapeDeck() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(width: 128, child: Center(child: _build3DDPad())),
         Expanded(child: _buildBoardScreen()),
-        SizedBox(width: 196, child: Center(child: _buildActionGrid())),
+        SizedBox(
+          width: 204,
+          child: Center(
+            child: FittedBox(fit: BoxFit.scaleDown, child: _buildRightDeck()),
+          ),
+        ),
       ],
     );
   }
@@ -4173,7 +3943,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 16,
           runSpacing: 12,
-          children: [_build3DDPad(), _buildActionGrid()],
+          children: [_build3DDPad(), _buildRightDeck()],
         ),
       ],
     );
@@ -4206,50 +3976,27 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   // 액션 버튼 3×3 (UPLOAD TEXT BG / DIAG SAVE PNG / STORY SHARE RST)
   Widget _buildActionGrid() {
     return SizedBox(
-      width: 3 * 52 + 2 * 11,
+      width: 3 * 56 + 2 * 10,
       child: Wrap(
-        spacing: 11,
-        runSpacing: 8,
+        spacing: 10,
+        runSpacing: 10,
         alignment: WrapAlignment.center,
         children: _actionButtons(),
       ),
     );
   }
 
+  // ★ 6개: ADD(사진·글귀) / BG / DIAG / EXPORT(보드·스토리) / SHARE / RST
+  // SAVE는 자동 저장이라 뺐다.
   List<Widget> _actionButtons() {
     return [
-      _actionBtn(icon: Icons.upload_sharp, label: 'UPLOAD', onTap: _pickImage),
-      _actionBtn(
-        icon: Icons.title_sharp,
-        label: 'TEXT',
-        onTap: () => _showTextDialog(),
-      ),
+      _actionBtn(icon: Icons.add_box_sharp, label: 'ADD', onTap: _showAddSheet),
       _actionBtn(icon: Icons.wallpaper_sharp, label: 'BG', onTap: _showBgDialog),
       _actionBtn(icon: Icons.psychology_sharp, label: 'DIAG', onTap: _startQuiz),
-      _actionBtn(
-        icon: Icons.save_sharp,
-        label: 'SAVE',
-        onTap: () async {
-          await _saveBoard();
-          _savePulseController.forward(from: 0);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Saved! ✨',
-                  style: TextStyle(color: _theme.accent),
-                ),
-                duration: const Duration(seconds: 1),
-                backgroundColor: _theme.screenBorder,
-              ),
-            );
-          }
-        },
-      ),
       _isExporting
           ? SizedBox(
-              width: 52,
-              height: 45,
+              width: 56,
+              height: 49,
               child: Center(
                 child: SizedBox(
                   width: 14,
@@ -4262,15 +4009,10 @@ class _VisionBoardPageState extends State<VisionBoardPage>
               ),
             )
           : _actionBtn(
-              icon: Icons.download_sharp,
-              label: 'PNG',
-              onTap: _exportAsPng,
+              icon: Icons.ios_share_sharp,
+              label: 'EXPORT',
+              onTap: _showExportSheet,
             ),
-      _actionBtn(
-        icon: Icons.smartphone_sharp,
-        label: 'STORY',
-        onTap: _exportStory,
-      ),
       _actionBtn(icon: Icons.share_sharp, label: 'SHARE', onTap: _shareBoard),
       _actionBtn(
         icon: Icons.restart_alt_sharp,
@@ -4279,6 +4021,121 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       ),
     ];
   }
+
+  // 선택지 시트 (ADD / EXPORT 공용)
+  Future<void> _showChoiceSheet(
+    String title,
+    List<({IconData icon, String label, String sub, VoidCallback onTap})> items,
+  ) {
+    final t = _theme;
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: t.deviceBg2,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontFamily: 'PressStart2P',
+                  fontSize: 11,
+                  color: t.accent,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 14),
+              for (final it in items)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _buttonBlip();
+                      it.onTap();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: t.accent.withOpacity(.4)),
+                        color: Colors.white.withOpacity(.04),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(it.icon, color: t.accent, size: 26),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  it.label,
+                                  style: TextStyle(
+                                    fontFamily: 'Jua',
+                                    fontSize: 17,
+                                    color: t.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  it.sub,
+                                  style: TextStyle(
+                                    fontFamily: 'Jua',
+                                    fontSize: 13,
+                                    color: t.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAddSheet() => _showChoiceSheet('ADD', [
+    (
+      icon: Icons.add_photo_alternate_sharp,
+      label: tr('사진 올리기', 'Upload a photo'),
+      sub: tr('내 사진을 보드에 붙여요', 'Pin your own photo to the board'),
+      onTap: _pickImage,
+    ),
+    (
+      icon: Icons.title_sharp,
+      label: tr('글귀 추가', 'Add text'),
+      sub: tr('좋아하는 문장을 카드로 만들어요', 'Turn a line you love into a card'),
+      onTap: () => _showTextDialog(),
+    ),
+  ]);
+
+  Future<void> _showExportSheet() => _showChoiceSheet('EXPORT', [
+    (
+      icon: Icons.image_sharp,
+      label: tr('보드 이미지 (PNG)', 'Board image (PNG)'),
+      sub: tr('지금 보드를 그대로 저장해요', 'Save the board as it looks now'),
+      onTap: _exportAsPng,
+    ),
+    (
+      icon: Icons.smartphone_sharp,
+      label: tr('스토리용 9:16', 'Story image 9:16'),
+      sub: tr('인스타 스토리에 맞춰 세로로 저장해요', 'Vertical frame for Instagram stories'),
+      onTap: _exportStory,
+    ),
+  ]);
 
   // ★ Claude Design 스타일 pill 무드 버튼
   Widget _moodPillButton(String moodKey, String label) {
@@ -4320,7 +4177,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
               style: TextStyle(
                 color: isActive ? _theme.screenBorder : _theme.textSecondary,
                 fontSize: 11,
-                fontFamily: 'monospace',
+                fontFamily: 'SpaceMono',
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
               ),
@@ -4343,10 +4200,10 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         _buttonBlip();
         onTap();
       },
-      width: 52,
-      height: 40,
+      width: 56,
+      height: 44,
       theme: _theme,
-      fontSize: 8,
+      fontSize: 9,
       isVertical: true,
       icon: icon,
     );
@@ -4589,7 +4446,17 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                           : _buildBoardScreen(),
                     ),
                     const SizedBox(height: 14),
-                    landscape ? _buildMoodPills() : _buildGameButtons(),
+                    landscape
+                        ? _buildMoodPills()
+                        : AnimatedSize(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
+                            alignment: Alignment.topCenter,
+                            child: _showQuiz
+                                // 터치로는 카드를 직접 누르면 되므로 진단 화면을 넓게 쓴다.
+                                ? const SizedBox(width: double.infinity)
+                                : _buildGameButtons(),
+                          ),
                   ],
                 );
               },
@@ -4672,6 +4539,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       fit: BoxFit.cover,
                       gaplessPlayback: true,
                     )
+                  : !_hasAsset(card.imageUrl)
+                  ? _placeholderTile()
                   : Image.asset(
                       card.imageUrl!,
                       fit: BoxFit.cover,
@@ -4699,14 +4568,19 @@ class _VisionBoardPageState extends State<VisionBoardPage>
             color: _theme.cardFrame,
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
               _moodCaption(card.imageUrl),
+              softWrap: false,
               style: TextStyle(
                 color: _theme.accentDim,
                 fontSize: 7,
-                fontFamily: 'monospace',
+                fontFamily: 'SpaceMono',
                 letterSpacing: 1.5,
               ),
+            ),
             ),
           ),
         ],
@@ -4819,7 +4693,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                   style: TextStyle(
                     color: _theme.textPrimary,
                     fontSize: 14,
-                    fontFamily: 'monospace',
+                    fontFamily: 'SpaceMono',
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -4855,7 +4729,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                             style: TextStyle(
                               color: _theme.textSecondary,
                               fontSize: 11,
-                              fontFamily: 'monospace',
+                              fontFamily: 'SpaceMono',
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -4902,7 +4776,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                             style: TextStyle(
                               color: _theme.textSecondary,
                               fontSize: 11,
-                              fontFamily: 'monospace',
+                              fontFamily: 'SpaceMono',
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -4954,7 +4828,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                           style: TextStyle(
                             color: _theme.textSecondary,
                             fontSize: 11,
-                            fontFamily: 'monospace',
+                            fontFamily: 'SpaceMono',
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -5036,7 +4910,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                         isEdit ? 'SAVE' : 'ADD',
                         style: TextStyle(
                           color: _theme.deviceBg,
-                          fontFamily: 'monospace',
+                          fontFamily: 'SpaceMono',
                         ),
                       ),
                     ),
@@ -5077,7 +4951,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     style: TextStyle(
                       color: _theme.textPrimary,
                       fontSize: 14,
-                      fontFamily: 'monospace',
+                      fontFamily: 'SpaceMono',
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -5122,7 +4996,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                             style: TextStyle(
                               color: _theme.textPrimary,
                               fontSize: 12,
-                              fontFamily: 'monospace',
+                              fontFamily: 'SpaceMono',
                             ),
                           ),
                         ],
@@ -5135,7 +5009,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     style: TextStyle(
                       color: _theme.textSecondary,
                       fontSize: 11,
-                      fontFamily: 'monospace',
+                      fontFamily: 'SpaceMono',
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -5168,7 +5042,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                     ? _theme.deviceBg
                                     : _theme.textPrimary,
                                 fontSize: 11,
-                                fontFamily: 'monospace',
+                                fontFamily: 'SpaceMono',
                               ),
                             ),
                           ),
@@ -5182,7 +5056,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     style: TextStyle(
                       color: _theme.textSecondary,
                       fontSize: 11,
-                      fontFamily: 'monospace',
+                      fontFamily: 'SpaceMono',
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -5229,7 +5103,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     style: TextStyle(
                       color: _theme.textSecondary,
                       fontSize: 11,
-                      fontFamily: 'monospace',
+                      fontFamily: 'SpaceMono',
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -5295,7 +5169,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                           'APPLY',
                           style: TextStyle(
                             color: _theme.deviceBg,
-                            fontFamily: 'monospace',
+                            fontFamily: 'SpaceMono',
                           ),
                         ),
                       ),
