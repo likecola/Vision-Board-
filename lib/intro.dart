@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'build_info.dart';
 import 'web_synth.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -431,6 +432,19 @@ class _IntroOverlayState extends State<IntroOverlay>
                       right: 24,
                       child: _SkipButton(onTap: _skip),
                     ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 4,
+                    child: IgnorePointer(
+                      child: Center(
+                        child: Text(
+                          kVersionLabel,
+                          style: _mono(8, const Color(0xFF6F5A96), ls: 1),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

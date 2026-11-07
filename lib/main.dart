@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'diagnosis.dart';
+import 'build_info.dart';
 import 'diagnosis_data.dart';
 import 'intro.dart';
 import 'web_synth.dart';
@@ -3944,6 +3945,18 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     ],
                   );
                 },
+              ),
+              const SizedBox(height: 14),
+              Center(
+                child: Text(
+                  kVersionLabel,
+                  style: TextStyle(
+                    fontFamily: 'SpaceMono',
+                    fontSize: 10,
+                    letterSpacing: 1,
+                    color: t.textSecondary.withOpacity(.7),
+                  ),
+                ),
               ),
             ],
           ),
