@@ -22,7 +22,7 @@ class DiagMood {
   final String descKo, descEn;
   final List<String> kwKo, kwEn;
 
-  /// 꿈별이 의상(MascotPainter costume 키)
+  /// 스텔라 의상(MascotPainter costume 키)
   final String costume;
 
   String get title => tr(titleKo, titleEn);

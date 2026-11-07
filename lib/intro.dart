@@ -885,7 +885,7 @@ class _IntroOverlayState extends State<IntroOverlay>
           ),
           const SizedBox(height: 22),
           Text(
-            'START 버튼이나 화면을 눌러 꿈별이를 깨워주세요',
+            'START 버튼이나 화면을 눌러 스텔라를 깨워주세요',
             style: _jua(15, const Color(0xFF8E78B8)),
           ),
         ],
@@ -1108,7 +1108,7 @@ class _IntroOverlayState extends State<IntroOverlay>
                         children: const [
                           TextSpan(text: '안녕! 나는 '),
                           TextSpan(
-                            text: '꿈별이',
+                            text: '스텔라',
                             style: TextStyle(color: Color(0xFFC2187A)),
                           ),
                           TextSpan(text: ' ✦\n너의 꿈을 진단해볼까?'),
@@ -1334,7 +1334,7 @@ class _IntroOverlayState extends State<IntroOverlay>
 double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 
 // ─────────────────────────────────────────────────────────────
-// 마스코트 "꿈별이" — 15×14 픽셀 아트 (CustomPainter)
+// 마스코트 "스텔라" — 15×14 픽셀 아트 (CustomPainter)
 // ─────────────────────────────────────────────────────────────
 class Mascot extends StatelessWidget {
   const Mascot({super.key, required this.px, this.closed = false, this.costume});

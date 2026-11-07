@@ -15,8 +15,9 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 - Console body uses a 3-stop linear gradient (`shellHi → shell1 → shell2`) + plastic sheen overlay + 4 radial-gradient screws — same structure as the Claude Design HTML source
 - Console colors fully re-skin per mood (body, bezel, buttons, accent, text)
 - Top header: `VISION BOARD` logo, current mood pill badge, blinking LED (synced to mood particle color)
-- Landscape-first layout: D-PAD on the left, **A/B** + six action buttons (ADD / BG / DIAG / EXPORT / SHARE / RST) on the right so the board fills the window; phones (portrait) stack them below
-- `ADD` = upload a photo or add a text card, `EXPORT` = board PNG or 9:16 story image; saving is automatic
+- Landscape-first layout like a handheld: **D-PAD** on the left, **A/B** and a single **MENU** pill on the right, so the board fills the window; phones (portrait) stack them below
+- `MENU` opens big tiles: ADD (photo / text), BG, DIAG, EXPORT (board PNG / 9:16 story), SHARE, RESET. During the diagnosis only A/B are shown. Saving is automatic
+- Boards are laid out on a loose grid (about 8 large photo cards + 4 text cards on landscape, fewer on phones) instead of a crowded collage
 - 3D physical buttons — layered side + surface with `AnimatedPositioned` press, scanline texture on surface, `shellHi → btnFace` gradient
 - 3D D-PAD — radial-gradient center orb + hold-to-repeat for continuous card movement
 
@@ -78,7 +79,7 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 | 🌍 Wanderlust | Cards rise from below through mist |
 
 ### Boot Intro
-- Opens like a handheld console: **PRESS START** → cartridge rises and clacks into the slot → CRT power-on → typed boot log → `DREAM OS` logo drops in with a ding → **HELLO** from the mascot 꿈별이
+- Opens like a handheld console: **PRESS START** → cartridge rises and clacks into the slot → CRT power-on → typed boot log → `DREAM OS` logo drops in with a ding → **HELLO** from the mascot 스텔라
 - HELLO only opens once the timeline has finished **and** the board has finished loading
 - Returning visitors get `SKIP ▸▸` / `S`; shared-link visitors skip it entirely (`?intro=0` also skips)
 - Mascot (15×14 pixel art) and cartridge are `CustomPainter`s; all sounds are synthesized with WebAudio — no audio files

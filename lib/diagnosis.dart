@@ -11,7 +11,7 @@ import 'web_synth.dart';
 // ─────────────────────────────────────────────────────────────
 // DREAM OS 진단 — "꾸미기가 곧 테스트"
 //
-// 안내(꿈별이) → 3라운드(카드 6장 중 2장) → 분석 → 수집 카드 형태의 결과.
+// 안내(스텔라) → 3라운드(카드 6장 중 2장) → 분석 → 수집 카드 형태의 결과.
 // 콘솔의 D-패드 / A / B 와 키보드, 터치 모두로 조작한다.
 // ─────────────────────────────────────────────────────────────
 
@@ -113,8 +113,8 @@ class _DiagnosisScreenState extends State<DiagnosisScreen>
       ..repeat();
     _newDeck();
     _say(
-      '안녕, 나는 꿈별이! 카드를 보고 끌리는 걸 라운드마다 2장씩 골라줘. 정답은 없어!',
-      "Hi, I'm Dreamy! Pick the 2 cards that pull you each round. No wrong answers!",
+      '안녕, 나는 스텔라! 카드를 보고 끌리는 걸 라운드마다 2장씩 골라줘. 정답은 없어!',
+      "Hi, I'm Stella! Pick the 2 cards that pull you each round. No wrong answers!",
     );
     widget.controller._handler = _onKey;
     appLang.addListener(_rebuild);

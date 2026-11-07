@@ -762,6 +762,74 @@ class _RoundPadButtonState extends State<RoundPadButton> {
   }
 }
 
+// ★ 작은 알약 버튼 (SELECT/START 느낌) — 콘솔 메뉴 버튼
+class PadPillButton extends StatefulWidget {
+  const PadPillButton({
+    super.key,
+    required this.label,
+    required this.theme,
+    required this.onTap,
+  });
+
+  final String label;
+  final MoodTheme theme;
+  final VoidCallback onTap;
+
+  @override
+  State<PadPillButton> createState() => _PadPillButtonState();
+}
+
+class _PadPillButtonState extends State<PadPillButton> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.theme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          button: true,
+          label: widget.label,
+          child: GestureDetector(
+            onTapDown: (_) => setState(() => _down = true),
+            onTapUp: (_) => setState(() => _down = false),
+            onTapCancel: () => setState(() => _down = false),
+            onTap: widget.onTap,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 60),
+                width: 64,
+                height: 18,
+                transform: Matrix4.translationValues(0, _down ? 3 : 0, 0),
+                decoration: BoxDecoration(
+                  color: t.buttonTop,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(color: t.buttonSide, offset: Offset(0, _down ? 0 : 3)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          widget.label,
+          style: TextStyle(
+            fontFamily: 'SpaceMono',
+            fontWeight: FontWeight.w700,
+            fontSize: 9,
+            letterSpacing: 2,
+            color: t.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ★ 버튼 표면용 미세 스캔라인 텍스처 (가벼운 레트로 질감)
 class _ButtonScanlinePainter extends CustomPainter {
   @override
@@ -2263,12 +2331,14 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 
   DiagPalette _diagPalette(String mood) {
     final t = moodThemes[mood] ?? _theme;
+    // 진단 화면은 어두운 바탕 위에서 보이므로, 밝은 테마(SOFT)에서도 읽히도록
+    // 테마의 글자색 대신 항상 밝은 글자색을 쓰고 무드 색은 살짝만 섞는다.
     return DiagPalette(
-      accent: t.accent,
+      accent: Color.lerp(t.accent, Colors.white, .12)!,
       accent2: t.accent2,
-      text: t.textPrimary,
-      muted: t.textSecondary,
-      bg: t.screenBorder,
+      text: Color.lerp(Colors.white, t.accent, .1)!,
+      muted: Color.lerp(Colors.white, t.accent, .4)!.withOpacity(.72),
+      bg: Color.lerp(const Color(0xFF0B0814), t.accent, .14)!,
       glow: t.glowColor,
     );
   }
@@ -2417,102 +2487,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     if (moodKey == _currentMood && !force) return;
     _moodChime(moodKey);
     final rng = Random(DateTime.now().millisecondsSinceEpoch);
-    final screenW = MediaQuery.of(context).size.width;
-    final screenH = MediaQuery.of(context).size.height;
-    final newCards = <BoardCard>[];
-    final placedRects = <Rect>[];
-
-    final images = moodKey == 'manifestation'
-        ? defaultImages
-        : (moodImages[moodKey] ?? defaultImages);
-    final shuffled = [...images]..shuffle(rng);
-    final useImages = shuffled.take(min(shuffled.length, 20)).toList();
-
-    for (int i = 0; i < useImages.length; i++) {
-      final cwR = 0.08 + rng.nextDouble() * 0.06;
-      final chR = 0.08 + rng.nextDouble() * 0.06;
-      Offset? placed;
-      for (int attempt = 0; attempt < 300; attempt++) {
-        final xR = 0.01 + rng.nextDouble() * (0.98 - cwR);
-        final yR = 0.01 + rng.nextDouble() * (0.98 - chR);
-        final rect = Rect.fromLTWH(
-          xR * screenW,
-          yR * screenH,
-          cwR * screenW,
-          chR * screenW,
-        );
-        if (!placedRects.any((r) => _overlaps(r, rect))) {
-          placed = Offset(xR, yR);
-          placedRects.add(rect);
-          break;
-        }
-      }
-      placed ??= Offset(
-        0.01 + rng.nextDouble() * (0.98 - cwR),
-        0.01 + rng.nextDouble() * (0.98 - chR),
-      );
-      newCards.add(
-        BoardCard(
-          imageUrl: useImages[i],
-          xRatio: placed.dx,
-          yRatio: placed.dy,
-          widthRatio: cwR,
-          heightRatio: chR,
-          rotation: (rng.nextDouble() - 0.5) * 0.45,
-        ),
-      );
-    }
-
-    final textItems = moodTextSets[moodKey]!;
-    const txtCols = 4;
-    const txtRows = 2;
-    final zoneOrder = List.generate(txtCols * txtRows, (i) => i)..shuffle(rng);
-    for (int i = 0; i < textItems.length; i++) {
-      final (text, style, paperColor, textColor) = textItems[i];
-      final cwR = 0.10 + rng.nextDouble() * 0.05;
-      final chR = 0.07 + rng.nextDouble() * 0.04;
-      final zoneIdx = zoneOrder[i % zoneOrder.length];
-      final zoneLeft = (zoneIdx % txtCols) / txtCols;
-      final zoneTop = (zoneIdx ~/ txtCols) / txtRows;
-      final zoneW = 1.0 / txtCols;
-      final zoneH = 1.0 / txtRows;
-      Offset? placed;
-      for (int attempt = 0; attempt < 500; attempt++) {
-        final xR =
-            zoneLeft +
-            0.01 +
-            rng.nextDouble() * (zoneW - cwR - 0.01).clamp(0, 1.0);
-        final yR =
-            zoneTop +
-            0.01 +
-            rng.nextDouble() * (zoneH - chR - 0.01).clamp(0, 1.0);
-        final rect = Rect.fromLTWH(
-          xR * screenW,
-          yR * screenH,
-          cwR * screenW,
-          chR * screenW,
-        );
-        if (!placedRects.any((r) => _overlaps(r, rect))) {
-          placed = Offset(xR, yR);
-          placedRects.add(rect);
-          break;
-        }
-      }
-      placed ??= Offset(zoneLeft + 0.01, zoneTop + 0.01);
-      newCards.add(
-        BoardCard(
-          text: text,
-          xRatio: placed.dx,
-          yRatio: placed.dy,
-          widthRatio: cwR,
-          heightRatio: chR,
-          rotation: (rng.nextDouble() - 0.5) * 0.35,
-          style: style,
-          paperColor: paperColor,
-          textColor: textColor,
-        ),
-      );
-    }
+    final newCards = _buildMoodCards(moodKey, rng);
 
     final bgImageList = moodBgImages[moodKey] ?? [];
     final randomBgAsset = bgImageList.isNotEmpty
@@ -2562,141 +2537,85 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   }
 
   void _generateDefaultBoard() {
-    final rng = Random(56);
-    final screenW = MediaQuery.of(context).size.width;
-    final screenH = MediaQuery.of(context).size.height;
-    final placedRects = <Rect>[];
-    final newCards = <BoardCard>[];
-    const centerImgPath = 'imgs/Manifestation/manifestation_21.jpg';
-    const centerWR = 0.18;
-    const centerHR = 0.18;
-    final centerXR = (1.0 - centerWR) / 2;
-    final centerYR = (1.0 - centerHR) / 2 - 0.02;
-    placedRects.add(
-      Rect.fromLTWH(
-        centerXR * screenW,
-        centerYR * screenH,
-        centerWR * screenW,
-        centerHR * screenW,
-      ),
-    );
-    final topForced = [
-      Offset(rng.nextDouble() * 0.25, 0.01 + rng.nextDouble() * 0.12),
-      Offset(0.25 + rng.nextDouble() * 0.25, 0.01 + rng.nextDouble() * 0.12),
-      Offset(0.5 + rng.nextDouble() * 0.25, 0.01 + rng.nextDouble() * 0.12),
-      Offset(0.75 + rng.nextDouble() * 0.2, 0.01 + rng.nextDouble() * 0.12),
-    ];
-    int topCount = 0;
-    for (final img in defaultImages) {
-      if (img == centerImgPath) continue;
-      final cwR = 0.08 + rng.nextDouble() * 0.06;
-      final chR = 0.08 + rng.nextDouble() * 0.06;
-      Offset? placed;
-      if (topCount < 4) {
-        placed = topForced[topCount++];
-        placedRects.add(
-          Rect.fromLTWH(
-            placed.dx * screenW,
-            placed.dy * screenH,
-            cwR * screenW,
-            chR * screenW,
+    final newCards = _buildMoodCards('manifestation', Random(56));
+    setState(() => cards = newCards);
+    _saveBoard();
+  }
+
+  // 보드의 실제 크기 (보드 화면 LayoutBuilder가 갱신)
+  double _boardW = 0, _boardH = 0;
+
+  /// 여유롭고 큼직한 배치: 보드를 칸으로 나누고 칸마다 카드 하나를 약간 흔들어 놓는다.
+  /// 가로 4×3, 정사각에 가까우면 3×3, 세로(휴대폰) 2×4. 문구는 약 1/3.
+  List<BoardCard> _buildMoodCards(String moodKey, Random rng) {
+    final mq = MediaQuery.of(context).size;
+    final bw = _boardW > 0 ? _boardW : max(320.0, mq.width - 440);
+    final bh = _boardH > 0 ? _boardH : max(300.0, mq.height - 200);
+    final aspect = bw / bh;
+    final int cols, rows;
+    if (aspect >= 1.25) {
+      cols = 4;
+      rows = 3;
+    } else if (aspect >= 0.8) {
+      cols = 3;
+      rows = 3;
+    } else {
+      cols = 2;
+      rows = 4;
+    }
+    final slots = cols * rows;
+    final nText = (slots / 3).round();
+    final textSlots = (List.generate(slots, (i) => i)..shuffle(rng))
+        .take(nText)
+        .toSet();
+    final images = [
+      ...(moodKey == 'manifestation'
+          ? defaultImages
+          : (moodImages[moodKey] ?? defaultImages)),
+    ]..shuffle(rng);
+    final texts = [...moodTextSets[moodKey]!]..shuffle(rng);
+
+    final cellW = bw / cols, cellH = bh / rows;
+    final out = <BoardCard>[];
+    var pi = 0, ti = 0;
+    for (var slot = 0; slot < slots; slot++) {
+      final col = slot % cols, row = slot ~/ cols;
+      final cx = (col + .5) * cellW + (rng.nextDouble() - .5) * cellW * .16;
+      final cy = (row + .5) * cellH + (rng.nextDouble() - .5) * cellH * .16;
+      if (textSlots.contains(slot)) {
+        final (text, style, paper, color) = texts[ti++ % texts.length];
+        final wPx = cellW * .62;
+        final hPx = min(cellH * .42, wPx * .45);
+        out.add(
+          BoardCard(
+            text: text,
+            xRatio: ((cx - wPx / 2) / bw).clamp(.01, .99 - wPx / bw),
+            yRatio: ((cy - hPx / 2) / bh).clamp(.01, .99 - hPx / bh),
+            widthRatio: wPx / bw,
+            heightRatio: hPx / bw,
+            rotation: (rng.nextDouble() - .5) * .2,
+            style: style,
+            paperColor: paper,
+            textColor: color,
           ),
         );
       } else {
-        for (int attempt = 0; attempt < 300; attempt++) {
-          final xR = 0.01 + rng.nextDouble() * (0.98 - cwR);
-          final yR = 0.01 + rng.nextDouble() * (0.98 - chR);
-          final rect = Rect.fromLTWH(
-            xR * screenW,
-            yR * screenH,
-            cwR * screenW,
-            chR * screenW,
-          );
-          if (!placedRects.any((r) => _overlaps(r, rect))) {
-            placed = Offset(xR, yR);
-            placedRects.add(rect);
-            break;
-          }
-        }
-      }
-      placed ??= Offset(
-        0.01 + rng.nextDouble() * (0.98 - cwR),
-        0.01 + rng.nextDouble() * (0.98 - chR),
-      );
-      newCards.add(
-        BoardCard(
-          imageUrl: img,
-          xRatio: placed.dx,
-          yRatio: placed.dy,
-          widthRatio: cwR,
-          heightRatio: chR,
-          rotation: (rng.nextDouble() - 0.5) * 0.45,
-        ),
-      );
-    }
-    newCards.add(
-      BoardCard(
-        imageUrl: centerImgPath,
-        xRatio: centerXR,
-        yRatio: centerYR,
-        widthRatio: centerWR,
-        heightRatio: centerHR,
-        rotation: 0,
-      ),
-    );
-    final textItems = moodTextSets['manifestation']!;
-    const txtCols = 4;
-    const txtRows = 2;
-    final zoneOrder = List.generate(txtCols * txtRows, (i) => i)
-      ..shuffle(Random(77));
-    for (int i = 0; i < textItems.length; i++) {
-      final (text, style, paperColor, textColor) = textItems[i];
-      final cwR = 0.10 + rng.nextDouble() * 0.05;
-      final chR = 0.07 + rng.nextDouble() * 0.04;
-      final zoneIdx = zoneOrder[i % zoneOrder.length];
-      final zoneLeft = (zoneIdx % txtCols) / txtCols;
-      final zoneTop = (zoneIdx ~/ txtCols) / txtRows;
-      final zoneW = 1.0 / txtCols;
-      final zoneH = 1.0 / txtRows;
-      Offset? placed;
-      for (int attempt = 0; attempt < 500; attempt++) {
-        final xR =
-            zoneLeft +
-            0.01 +
-            rng.nextDouble() * (zoneW - cwR - 0.01).clamp(0, 1.0);
-        final yR =
-            zoneTop +
-            0.01 +
-            rng.nextDouble() * (zoneH - chR - 0.01).clamp(0, 1.0);
-        final rect = Rect.fromLTWH(
-          xR * screenW,
-          yR * screenH,
-          cwR * screenW,
-          chR * screenW,
+        final asp = .9 + rng.nextDouble() * .25; // 사진 높이 / 너비
+        final wPx = min(cellW * .8, (cellH * .9 - 24) / asp);
+        final hPx = wPx * asp;
+        out.add(
+          BoardCard(
+            imageUrl: images[pi++ % images.length],
+            xRatio: ((cx - wPx / 2) / bw).clamp(.01, .99 - wPx / bw),
+            yRatio: ((cy - (hPx + 24) / 2) / bh).clamp(.01, .99 - (hPx + 24) / bh),
+            widthRatio: wPx / bw,
+            heightRatio: hPx / bw,
+            rotation: (rng.nextDouble() - .5) * .16,
+          ),
         );
-        if (!placedRects.any((r) => _overlaps(r, rect))) {
-          placed = Offset(xR, yR);
-          placedRects.add(rect);
-          break;
-        }
       }
-      placed ??= Offset(zoneLeft + 0.01, zoneTop + 0.01);
-      newCards.add(
-        BoardCard(
-          text: text,
-          xRatio: placed.dx,
-          yRatio: placed.dy,
-          widthRatio: cwR,
-          heightRatio: chR,
-          rotation: (rng.nextDouble() - 0.5) * 0.45,
-          style: style,
-          paperColor: paperColor,
-          textColor: textColor,
-        ),
-      );
     }
-    setState(() => cards = newCards);
-    _saveBoard();
+    return out;
   }
 
   bool _overlaps(Rect a, Rect b) {
@@ -3413,6 +3332,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       builder: (context, inner) {
                         final screenW = inner.maxWidth;
                         final screenH = inner.maxHeight;
+                        _boardW = screenW;
+                        _boardH = screenH;
                         return GestureDetector(
                           onTap: () => _selectCard(null),
                           behavior: HitTestBehavior.translucent,
@@ -3902,15 +3823,114 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     );
   }
 
-  // A/B + 버튼 3×2 묶음
+  // A/B (+ 진단이 끝난 뒤에는 MENU) — 게임기처럼 단순하게
   Widget _buildRightDeck() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _buildAbCluster(),
-        const SizedBox(height: 14),
-        _buildActionGrid(),
+        if (!_showQuiz) ...[
+          const SizedBox(height: 22),
+          Transform.rotate(
+            angle: -18 * pi / 180,
+            child: PadPillButton(
+              label: _isExporting ? 'SAVING…' : 'MENU',
+              theme: _theme,
+              onTap: () {
+                _buttonBlip();
+                _showMenuSheet();
+              },
+            ),
+          ),
+        ],
       ],
+    );
+  }
+
+  // MENU — 큰 타일 6개 (ADD / BG / DIAG / EXPORT / SHARE / RESET)
+  Future<void> _showMenuSheet() {
+    final t = _theme;
+    final items = <({IconData icon, String label, VoidCallback onTap})>[
+      (icon: Icons.add_box_sharp, label: tr('추가', 'ADD'), onTap: _showAddSheet),
+      (icon: Icons.wallpaper_sharp, label: tr('배경', 'BG'), onTap: _showBgDialog),
+      (icon: Icons.psychology_sharp, label: tr('진단', 'DIAG'), onTap: _startQuiz),
+      (icon: Icons.ios_share_sharp, label: tr('내보내기', 'EXPORT'), onTap: _showExportSheet),
+      (icon: Icons.share_sharp, label: tr('공유', 'SHARE'), onTap: _shareBoard),
+      (icon: Icons.restart_alt_sharp, label: tr('초기화', 'RESET'), onTap: _confirmReset),
+    ];
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: t.deviceBg2,
+      constraints: const BoxConstraints(maxWidth: 560),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'MENU',
+                style: TextStyle(
+                  fontFamily: 'PressStart2P',
+                  fontSize: 11,
+                  color: t.accent,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 16),
+              LayoutBuilder(
+                builder: (context, c) {
+                  const gap = 12.0;
+                  final w = (c.maxWidth - gap * 2) / 3;
+                  return Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      for (final it in items)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            Future.microtask(it.onTap);
+                          },
+                          child: Container(
+                            width: w,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: t.accent.withOpacity(.35)),
+                              color: Colors.white.withOpacity(.04),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(it.icon, size: 30, color: t.accent),
+                                const SizedBox(height: 10),
+                                Text(
+                                  it.label,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'Jua',
+                                    fontSize: 16,
+                                    color: t.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -3971,55 +3991,6 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         ),
       ),
     );
-  }
-
-  // 액션 버튼 3×3 (UPLOAD TEXT BG / DIAG SAVE PNG / STORY SHARE RST)
-  Widget _buildActionGrid() {
-    return SizedBox(
-      width: 3 * 56 + 2 * 10,
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        alignment: WrapAlignment.center,
-        children: _actionButtons(),
-      ),
-    );
-  }
-
-  // ★ 6개: ADD(사진·글귀) / BG / DIAG / EXPORT(보드·스토리) / SHARE / RST
-  // SAVE는 자동 저장이라 뺐다.
-  List<Widget> _actionButtons() {
-    return [
-      _actionBtn(icon: Icons.add_box_sharp, label: 'ADD', onTap: _showAddSheet),
-      _actionBtn(icon: Icons.wallpaper_sharp, label: 'BG', onTap: _showBgDialog),
-      _actionBtn(icon: Icons.psychology_sharp, label: 'DIAG', onTap: _startQuiz),
-      _isExporting
-          ? SizedBox(
-              width: 56,
-              height: 49,
-              child: Center(
-                child: SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: _theme.accent,
-                  ),
-                ),
-              ),
-            )
-          : _actionBtn(
-              icon: Icons.ios_share_sharp,
-              label: 'EXPORT',
-              onTap: _showExportSheet,
-            ),
-      _actionBtn(icon: Icons.share_sharp, label: 'SHARE', onTap: _shareBoard),
-      _actionBtn(
-        icon: Icons.restart_alt_sharp,
-        label: 'RST',
-        onTap: _confirmReset,
-      ),
-    ];
   }
 
   // 선택지 시트 (ADD / EXPORT 공용)
@@ -4185,27 +4156,6 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           ],
         ),
       ),
-    );
-  }
-
-  // ★ Claude Design 스타일 액션 버튼
-  Widget _actionBtn({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GameButton3D(
-      label: label,
-      onTap: () {
-        _buttonBlip();
-        onTap();
-      },
-      width: 56,
-      height: 44,
-      theme: _theme,
-      fontSize: 9,
-      isVertical: true,
-      icon: icon,
     );
   }
 
