@@ -62,19 +62,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  assets:
-      - imgs/
-      - imgs/Manifestation/
-      - imgs/soft_life/
-      - imgs/That_Girl/
-      - imgs/Cyber_Dream/
-      - imgs/wanderlust/
-      - background/Manifestation/
-      - background/soft_life/
-      - background/That_Girl/
-      - background/Cyber_Dream/
-      - background/wanderlust/
+  # 사진/배경 이미지는 번들에 포함하지 않는다.
+  # 보드의 사진 카드는 이미지가 없으면 무드 색 그라디언트 타일로 그려지고(Image.asset errorBuilder),
+  # 사용자는 UPLOAD로 자기 사진을 올려 쓴다. 라이선스가 확인된 이미지를 넣을 때는
+  # 여기에 `assets:` 항목을 다시 추가하면 된다.
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

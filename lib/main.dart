@@ -54,7 +54,10 @@ class IntroGate extends StatefulWidget {
 
 class _IntroGateState extends State<IntroGate> {
   final _pageKey = GlobalKey<_VisionBoardPageState>();
-  late bool _showIntro = !initialUrlHash.startsWith('#b=');
+  // ?intro=0 으로 인트로를 건너뛸 수 있다 (임베드/개발용)
+  late bool _showIntro =
+      !initialUrlHash.startsWith('#b=') &&
+      Uri.base.queryParameters['intro'] != '0';
   bool _returning = false;
 
   @override
@@ -525,7 +528,7 @@ class GameButton3D extends StatefulWidget {
   final MoodTheme theme;
   final double fontSize;
   final bool isVertical;
-  final String? iconText;
+  final IconData? icon;
 
   const GameButton3D({
     super.key,
@@ -537,7 +540,7 @@ class GameButton3D extends StatefulWidget {
     required this.theme,
     this.fontSize = 8,
     this.isVertical = false,
-    this.iconText,
+    this.icon,
   });
 
   @override
@@ -558,19 +561,17 @@ class _GameButton3DState extends State<GameButton3D> {
         : widget.theme.buttonSide;
 
     Widget content;
-    if (widget.isVertical && widget.iconText != null) {
+    if (widget.isVertical && widget.icon != null) {
       // Claude Design 스타일 수직 버튼 (아이콘 위 + 라벨 아래)
       content = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            widget.iconText!,
-            style: TextStyle(
-              color: widget.isActive
-                  ? widget.theme.deviceBg
-                  : widget.theme.textPrimary,
-              fontSize: 14,
-            ),
+          Icon(
+            widget.icon,
+            size: 17,
+            color: widget.isActive
+                ? widget.theme.deviceBg
+                : widget.theme.textPrimary,
           ),
           const SizedBox(height: 2),
           Text(
@@ -3062,6 +3063,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 
   // ★ Claude Design: 상단 바
   Widget _buildGameHeader() {
+    // 휴대폰 폭에서는 무드 이름과 장식 LED를 줄여 한 줄에 맞춘다.
+    final compact = MediaQuery.of(context).size.width < 560;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
       child: Row(
@@ -3144,6 +3147,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       moodLabels[_currentMood]?.split(' ').first ?? '',
                       style: const TextStyle(fontSize: 13),
                     ),
+                    if (!compact) ...[
                     const SizedBox(width: 6),
                     Text(
                       moodLabels[_currentMood]?.split(' ').last ?? '',
@@ -3155,6 +3159,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                         letterSpacing: 1,
                       ),
                     ),
+                    ],
                   ],
                 ),
               ),
@@ -3170,15 +3175,16 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        _soundOn ? '🔊' : '🔇',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: _theme.textSecondary,
-                        ),
+                      child: Icon(
+                        _soundOn
+                            ? Icons.volume_up_sharp
+                            : Icons.volume_off_sharp,
+                        size: 17,
+                        color: _theme.textSecondary,
                       ),
                     ),
                   ),
+                  if (!compact) ...[
                   const SizedBox(width: 10),
                   Container(
                     width: 9,
@@ -3198,6 +3204,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     ),
                   ),
                   const SizedBox(width: 7),
+                  ],
                   AnimatedBuilder(
                     animation: _savePulseController,
                     builder: (_, __) {
@@ -3688,418 +3695,9 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     );
   }
 
-  // ★ Claude Design: 하단 컨트롤 패널
-  Widget _buildGameButtons() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 무드 선택 버튼 (pill)
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 11,
-            children: [
-              for (final entry in moodLabels.entries)
-                _moodPillButton(entry.key, entry.value),
-            ],
-          ),
-          const SizedBox(height: 14),
-          // D-PAD + 액션 버튼 — 넓은 화면: 3분할(원본 디자인), 좁은 화면: 가운데 줄바꿈
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 780;
-              final creative = Wrap(
-                spacing: 11,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _actionBtn(icon: '↑', label: 'UPLOAD', onTap: _pickImage),
-                  _actionBtn(
-                    icon: 'T',
-                    label: 'TEXT',
-                    onTap: () => _showTextDialog(),
-                  ),
-                  _actionBtn(icon: '▣', label: 'BG', onTap: _showBgDialog),
-                  _actionBtn(icon: '◉', label: 'DIAG', onTap: _startQuiz),
-                ],
-              );
-              final util = Wrap(
-                spacing: 11,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _actionBtn(
-                    icon: '◇',
-                    label: 'SAVE',
-                    onTap: () async {
-                      await _saveBoard();
-                      _savePulseController.forward(from: 0);
-                      if (mounted)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Saved! ✨',
-                              style: TextStyle(color: _theme.accent),
-                            ),
-                            duration: const Duration(seconds: 1),
-                            backgroundColor: _theme.screenBorder,
-                          ),
-                        );
-                    },
-                  ),
-                  _isExporting
-                      ? SizedBox(
-                          width: 48,
-                          height: 53,
-                          child: Center(
-                            child: SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: _theme.accent,
-                              ),
-                            ),
-                          ),
-                        )
-                      : _actionBtn(
-                          icon: '↗',
-                          label: 'PNG',
-                          onTap: _exportAsPng,
-                        ),
-                  _actionBtn(icon: '▯', label: 'STORY', onTap: _exportStory),
-                  _actionBtn(icon: '⌁', label: 'SHARE', onTap: _shareBoard),
-                  _actionBtn(icon: '↺', label: 'RST', onTap: _confirmReset),
-                ],
-              );
-              if (wide) {
-                // Claude Design 원본 레이아웃: D-PAD 왼쪽 / 크리에이티브 중앙 / 유틸 오른쪽
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _build3DDPad(),
-                    const SizedBox(width: 16),
-                    Expanded(child: Center(child: creative)),
-                    const SizedBox(width: 16),
-                    util,
-                  ],
-                );
-              }
-              // 좁은 화면: 전부 가운데 정렬로 줄바꿈
-              return Wrap(
-                alignment: WrapAlignment.center,
-                runAlignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 16,
-                runSpacing: 12,
-                children: [_build3DDPad(), creative, util],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ★ Claude Design 스타일 pill 무드 버튼
-  Widget _moodPillButton(String moodKey, String label) {
-    final isActive = _currentMood == moodKey;
-    final parts = label.split(' ');
-    final emoji = parts.isNotEmpty ? parts[0] : '';
-    final text = parts.length > 1 ? parts[1] : label;
-    return GestureDetector(
-      onTap: () => _applyMood(moodKey),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          color: isActive ? _theme.accent : _theme.buttonBg.withOpacity(0.6),
-          border: Border.all(
-            color: isActive
-                ? _theme.accent
-                : _theme.buttonBorder.withOpacity(0.5),
-            width: 1.5,
-          ),
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: _theme.glowColor,
-                    blurRadius: 14,
-                    spreadRadius: 1,
-                  ),
-                ]
-              : [],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 13)),
-            const SizedBox(width: 5),
-            Text(
-              text,
-              style: TextStyle(
-                color: isActive ? _theme.screenBorder : _theme.textSecondary,
-                fontSize: 11,
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ★ Claude Design 스타일 액션 버튼
-  Widget _actionBtn({
-    required String icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GameButton3D(
-      label: label,
-      onTap: () {
-        _buttonBlip();
-        onTap();
-      },
-      width: 52,
-      height: 40,
-      theme: _theme,
-      fontSize: 8,
-      isVertical: true,
-      iconText: icon,
-    );
-  }
-
-  // ★ Claude Design D-PAD: 중앙 구슬 + 그라디언트 버튼
-  Widget _build3DDPad() {
-    const moveStep = 0.018;
-    const size = 108.0;
-    const arm = 38.0;
-    const center = 32.0;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        children: [
-          // 가로 바
-          Positioned(
-            top: arm,
-            left: 0,
-            child: _dpadArm(width: size, height: center),
-          ),
-          // 세로 바
-          Positioned(
-            left: arm,
-            top: 0,
-            child: _dpadArm(width: center, height: size),
-          ),
-          // 방향 버튼
-          Positioned(
-            top: 0,
-            left: arm,
-            child: DPadButton3D(
-              icon: Icons.keyboard_arrow_up,
-              theme: _theme,
-              onTap: () => _moveSelectedCard(0, -moveStep),
-              size: center,
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: arm,
-            child: DPadButton3D(
-              icon: Icons.keyboard_arrow_down,
-              theme: _theme,
-              onTap: () => _moveSelectedCard(0, moveStep),
-              size: center,
-            ),
-          ),
-          Positioned(
-            left: 0,
-            top: arm,
-            child: DPadButton3D(
-              icon: Icons.keyboard_arrow_left,
-              theme: _theme,
-              onTap: () => _moveSelectedCard(-moveStep, 0),
-              size: center,
-            ),
-          ),
-          Positioned(
-            right: 0,
-            top: arm,
-            child: DPadButton3D(
-              icon: Icons.keyboard_arrow_right,
-              theme: _theme,
-              onTap: () => _moveSelectedCard(moveStep, 0),
-              size: center,
-            ),
-          ),
-          // ★ 중앙 구슬 (Claude Design: radial gradient accent + glow)
-          Center(
-            child: AnimatedBuilder(
-              animation: _neonController,
-              builder: (_, __) => Container(
-                width: center,
-                height: center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    center: const Alignment(-0.35, -0.35),
-                    radius: 0.8,
-                    colors: [_theme.accent, _theme.buttonBg],
-                  ),
-                  boxShadow: [
-                    BoxShadow(color: _theme.screenBorder, spreadRadius: 3),
-                    BoxShadow(
-                      color: _theme.glowColor.withOpacity(
-                        0.4 + _neonController.value * 0.3,
-                      ),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _dpadArm({required double width, required double height}) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 700),
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [_theme.deviceBorder, _theme.buttonBg],
-        ),
-        boxShadow: [
-          BoxShadow(color: _theme.buttonSide, offset: const Offset(0, 4)),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // ★ 보드 로딩이 끝나면 인트로에 알린다 (HELLO 단계 진입 조건)
-    if (!isLoading && !appReadyNotifier.value) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        appReadyNotifier.value = true;
-      });
-    }
-    if (isLoading)
-      return Scaffold(
-        backgroundColor: _theme.deviceBg,
-        body: Center(child: CircularProgressIndicator(color: _theme.accent)),
-      );
-
-    return Scaffold(
-      // ★ Claude Design: page radial gradient (전체 배경)
-      backgroundColor: Colors.transparent,
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 700),
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: const Alignment(0, -1.3),
-            radius: 1.5,
-            colors: [_theme.deviceBg, _theme.deviceBg2],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1400),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: _buildConsole(),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ★ Claude Design: 게임기 본체 전체 (shell gradient + 나사 + 광택)
-  Widget _buildConsole() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 700),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: const [0.0, 0.14, 1.0],
-          colors: [_theme.deviceBorder, _theme.deviceBg, _theme.deviceBg2],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.white.withOpacity(0.10),
-            offset: const Offset(0, 2),
-            blurRadius: 0,
-            spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.45),
-            offset: const Offset(0, -8),
-            blurRadius: 22,
-            spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.55),
-            offset: const Offset(0, 40),
-            blurRadius: 80,
-          ),
-          BoxShadow(color: Colors.white.withOpacity(0.05), spreadRadius: 1),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // ★ 플라스틱 광택 (상단 + 하단 하이라이트)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.22, 0.78, 1.0],
-                    colors: [
-                      Colors.white.withOpacity(0.10),
-                      Colors.transparent,
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.18),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // 나사 4개
-          ..._buildScrews(),
-          // 본체 콘텐츠
-          Padding(
-            padding: const EdgeInsets.fromLTRB(22, 16, 22, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                _buildGameHeader(),
-                // ★ 화면 영역 - 남은 공간을 모두 채움
-                Expanded(
-                  child: _buildScreenBezel(
+  // ★ 보드 화면(베젤 + 보드) — 가로/세로 레이아웃이 공유한다.
+  Widget _buildBoardScreen() {
+    return _buildScreenBezel(
                     child: LayoutBuilder(
                       builder: (context, inner) {
                         final screenW = inner.maxWidth;
@@ -4548,11 +4146,453 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                         );
                       },
                     ),
-                  ),
-                ), // Expanded + _buildScreenBezel
-                const SizedBox(height: 16),
-                _buildGameButtons(),
+                  );
+  }
+
+  // ★ 가로 화면: [D-PAD] [ 보드 화면 ] [ 버튼 3×3 ]
+  Widget _buildLandscapeDeck() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(width: 128, child: Center(child: _build3DDPad())),
+        Expanded(child: _buildBoardScreen()),
+        SizedBox(width: 196, child: Center(child: _buildActionGrid())),
+      ],
+    );
+  }
+
+  // ★ 세로(휴대폰) 화면: 무드 → [D-PAD + 버튼 3×3]. 좁으면 줄바꿈.
+  Widget _buildGameButtons() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildMoodPills(),
+        const SizedBox(height: 14),
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 16,
+          runSpacing: 12,
+          children: [_build3DDPad(), _buildActionGrid()],
+        ),
+      ],
+    );
+  }
+
+  // 무드 pill — 한 줄, 넘치면 가로 스크롤(휴대폰), 남으면 가운데 정렬
+  Widget _buildMoodPills() {
+    final pills = [
+      for (final e in moodLabels.entries) _moodPillButton(e.key, e.value),
+    ];
+    return LayoutBuilder(
+      builder: (context, c) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: c.maxWidth),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < pills.length; i++) ...[
+                if (i > 0) const SizedBox(width: 11),
+                pills[i],
               ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 액션 버튼 3×3 (UPLOAD TEXT BG / DIAG SAVE PNG / STORY SHARE RST)
+  Widget _buildActionGrid() {
+    return SizedBox(
+      width: 3 * 52 + 2 * 11,
+      child: Wrap(
+        spacing: 11,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        children: _actionButtons(),
+      ),
+    );
+  }
+
+  List<Widget> _actionButtons() {
+    return [
+      _actionBtn(icon: Icons.upload_sharp, label: 'UPLOAD', onTap: _pickImage),
+      _actionBtn(
+        icon: Icons.title_sharp,
+        label: 'TEXT',
+        onTap: () => _showTextDialog(),
+      ),
+      _actionBtn(icon: Icons.wallpaper_sharp, label: 'BG', onTap: _showBgDialog),
+      _actionBtn(icon: Icons.psychology_sharp, label: 'DIAG', onTap: _startQuiz),
+      _actionBtn(
+        icon: Icons.save_sharp,
+        label: 'SAVE',
+        onTap: () async {
+          await _saveBoard();
+          _savePulseController.forward(from: 0);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Saved! ✨',
+                  style: TextStyle(color: _theme.accent),
+                ),
+                duration: const Duration(seconds: 1),
+                backgroundColor: _theme.screenBorder,
+              ),
+            );
+          }
+        },
+      ),
+      _isExporting
+          ? SizedBox(
+              width: 52,
+              height: 45,
+              child: Center(
+                child: SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: _theme.accent,
+                  ),
+                ),
+              ),
+            )
+          : _actionBtn(
+              icon: Icons.download_sharp,
+              label: 'PNG',
+              onTap: _exportAsPng,
+            ),
+      _actionBtn(
+        icon: Icons.smartphone_sharp,
+        label: 'STORY',
+        onTap: _exportStory,
+      ),
+      _actionBtn(icon: Icons.share_sharp, label: 'SHARE', onTap: _shareBoard),
+      _actionBtn(
+        icon: Icons.restart_alt_sharp,
+        label: 'RST',
+        onTap: _confirmReset,
+      ),
+    ];
+  }
+
+  // ★ Claude Design 스타일 pill 무드 버튼
+  Widget _moodPillButton(String moodKey, String label) {
+    final isActive = _currentMood == moodKey;
+    final parts = label.split(' ');
+    final emoji = parts.isNotEmpty ? parts[0] : '';
+    final text = parts.length > 1 ? parts[1] : label;
+    return GestureDetector(
+      onTap: () => _applyMood(moodKey),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          color: isActive ? _theme.accent : _theme.buttonBg.withOpacity(0.6),
+          border: Border.all(
+            color: isActive
+                ? _theme.accent
+                : _theme.buttonBorder.withOpacity(0.5),
+            width: 1.5,
+          ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: _theme.glowColor,
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : [],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 13)),
+            const SizedBox(width: 5),
+            Text(
+              text,
+              style: TextStyle(
+                color: isActive ? _theme.screenBorder : _theme.textSecondary,
+                fontSize: 11,
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ★ Claude Design 스타일 액션 버튼
+  Widget _actionBtn({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GameButton3D(
+      label: label,
+      onTap: () {
+        _buttonBlip();
+        onTap();
+      },
+      width: 52,
+      height: 40,
+      theme: _theme,
+      fontSize: 8,
+      isVertical: true,
+      icon: icon,
+    );
+  }
+
+  // ★ Claude Design D-PAD: 중앙 구슬 + 그라디언트 버튼
+  Widget _build3DDPad() {
+    const moveStep = 0.018;
+    const size = 108.0;
+    const arm = 38.0;
+    const center = 32.0;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          // 가로 바
+          Positioned(
+            top: arm,
+            left: 0,
+            child: _dpadArm(width: size, height: center),
+          ),
+          // 세로 바
+          Positioned(
+            left: arm,
+            top: 0,
+            child: _dpadArm(width: center, height: size),
+          ),
+          // 방향 버튼
+          Positioned(
+            top: 0,
+            left: arm,
+            child: DPadButton3D(
+              icon: Icons.keyboard_arrow_up,
+              theme: _theme,
+              onTap: () => _moveSelectedCard(0, -moveStep),
+              size: center,
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            left: arm,
+            child: DPadButton3D(
+              icon: Icons.keyboard_arrow_down,
+              theme: _theme,
+              onTap: () => _moveSelectedCard(0, moveStep),
+              size: center,
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: arm,
+            child: DPadButton3D(
+              icon: Icons.keyboard_arrow_left,
+              theme: _theme,
+              onTap: () => _moveSelectedCard(-moveStep, 0),
+              size: center,
+            ),
+          ),
+          Positioned(
+            right: 0,
+            top: arm,
+            child: DPadButton3D(
+              icon: Icons.keyboard_arrow_right,
+              theme: _theme,
+              onTap: () => _moveSelectedCard(moveStep, 0),
+              size: center,
+            ),
+          ),
+          // ★ 중앙 구슬 (Claude Design: radial gradient accent + glow)
+          Center(
+            child: AnimatedBuilder(
+              animation: _neonController,
+              builder: (_, __) => Container(
+                width: center,
+                height: center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    center: const Alignment(-0.35, -0.35),
+                    radius: 0.8,
+                    colors: [_theme.accent, _theme.buttonBg],
+                  ),
+                  boxShadow: [
+                    BoxShadow(color: _theme.screenBorder, spreadRadius: 3),
+                    BoxShadow(
+                      color: _theme.glowColor.withOpacity(
+                        0.4 + _neonController.value * 0.3,
+                      ),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dpadArm({required double width, required double height}) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 700),
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [_theme.deviceBorder, _theme.buttonBg],
+        ),
+        boxShadow: [
+          BoxShadow(color: _theme.buttonSide, offset: const Offset(0, 4)),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // ★ 보드 로딩이 끝나면 인트로에 알린다 (HELLO 단계 진입 조건)
+    if (!isLoading && !appReadyNotifier.value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        appReadyNotifier.value = true;
+      });
+    }
+    if (isLoading)
+      return Scaffold(
+        backgroundColor: _theme.deviceBg,
+        body: Center(child: CircularProgressIndicator(color: _theme.accent)),
+      );
+
+    return Scaffold(
+      // ★ Claude Design: page radial gradient (전체 배경)
+      backgroundColor: Colors.transparent,
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 700),
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(0, -1.3),
+            radius: 1.5,
+            colors: [_theme.deviceBg, _theme.deviceBg2],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1760),
+              child: Padding(
+                padding: EdgeInsets.all(
+                  MediaQuery.of(context).size.width < 600 ? 8 : 16,
+                ),
+                child: _buildConsole(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ★ Claude Design: 게임기 본체 전체 (shell gradient + 나사 + 광택)
+  Widget _buildConsole() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 700),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const [0.0, 0.14, 1.0],
+          colors: [_theme.deviceBorder, _theme.deviceBg, _theme.deviceBg2],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withOpacity(0.10),
+            offset: const Offset(0, 2),
+            blurRadius: 0,
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.45),
+            offset: const Offset(0, -8),
+            blurRadius: 22,
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.55),
+            offset: const Offset(0, 40),
+            blurRadius: 80,
+          ),
+          BoxShadow(color: Colors.white.withOpacity(0.05), spreadRadius: 1),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // ★ 플라스틱 광택 (상단 + 하단 하이라이트)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.0, 0.22, 0.78, 1.0],
+                    colors: [
+                      Colors.white.withOpacity(0.10),
+                      Colors.transparent,
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.18),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // 나사 4개
+          ..._buildScrews(),
+          // 본체 콘텐츠
+          Padding(
+            padding: MediaQuery.of(context).size.width < 600
+                ? const EdgeInsets.fromLTRB(12, 12, 12, 14)
+                : const EdgeInsets.fromLTRB(22, 16, 22, 20),
+            child: LayoutBuilder(
+              builder: (context, box) {
+                // 가로 화면: D-PAD·버튼을 화면 양옆에 두어 보드 화면을 최대한 크게.
+                // 세로(휴대폰): 화면 아래에 쌓는다.
+                final landscape =
+                    box.maxWidth >= 720 && box.maxWidth >= box.maxHeight * 1.2;
+                return Column(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    _buildGameHeader(),
+                    Expanded(
+                      child: landscape
+                          ? _buildLandscapeDeck()
+                          : _buildBoardScreen(),
+                    ),
+                    const SizedBox(height: 14),
+                    landscape ? _buildMoodPills() : _buildGameButtons(),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -5270,7 +5310,48 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     );
   }
 
+  // ★ 좁은 화면(휴대폰)에서 카드 폭이 줄어도 글자가 잘리지 않도록,
+  // 최소 기준 크기로 그린 뒤 비율을 유지한 채 축소한다.
   Widget _buildSpecialTextCard({
+    required String text,
+    required CardStyle style,
+    required Color textColor,
+    required Color paperColor,
+    required double w,
+    required double h,
+    required double neonFlicker,
+  }) {
+    const minW = 150.0, minH = 60.0;
+    if (w >= minW && h >= minH) {
+      return _buildSpecialTextCardRaw(
+        text: text,
+        style: style,
+        textColor: textColor,
+        paperColor: paperColor,
+        w: w,
+        h: h,
+        neonFlicker: neonFlicker,
+      );
+    }
+    return SizedBox(
+      width: w,
+      height: h,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: _buildSpecialTextCardRaw(
+          text: text,
+          style: style,
+          textColor: textColor,
+          paperColor: paperColor,
+          w: max(w, minW),
+          h: max(h, minH),
+          neonFlicker: neonFlicker,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpecialTextCardRaw({
     required String text,
     required CardStyle style,
     required Color textColor,
