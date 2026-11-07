@@ -2576,46 +2576,53 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     final texts = [...moodTextSets[moodKey]!]..shuffle(rng);
 
     final cellW = bw / cols, cellH = bh / rows;
-    final out = <BoardCard>[];
+    final photos = <BoardCard>[];
+    final texts2 = <BoardCard>[];
     var pi = 0, ti = 0;
+    double jit(double v) => (rng.nextDouble() - .5) * v;
     for (var slot = 0; slot < slots; slot++) {
       final col = slot % cols, row = slot ~/ cols;
-      final cx = (col + .5) * cellW + (rng.nextDouble() - .5) * cellW * .16;
-      final cy = (row + .5) * cellH + (rng.nextDouble() - .5) * cellH * .16;
+      final baseX = (col + .5) * cellW, baseY = (row + .5) * cellH;
       if (textSlots.contains(slot)) {
         final (text, style, paper, color) = texts[ti++ % texts.length];
+        final cx = baseX + jit(cellW * .16), cy = baseY + jit(cellH * .16);
         final wPx = cellW * .62;
         final hPx = min(cellH * .42, wPx * .45);
-        out.add(
+        texts2.add(
           BoardCard(
             text: text,
             xRatio: ((cx - wPx / 2) / bw).clamp(.01, .99 - wPx / bw),
             yRatio: ((cy - hPx / 2) / bh).clamp(.01, .99 - hPx / bh),
             widthRatio: wPx / bw,
             heightRatio: hPx / bw,
-            rotation: (rng.nextDouble() - .5) * .2,
+            rotation: jit(.2),
             style: style,
             paperColor: paper,
             textColor: color,
           ),
         );
       } else {
+        // 칸을 거의 채우는 크기에 위치를 크게 흔들어, 이웃끼리 살짝 겹치게 한다.
         final asp = .9 + rng.nextDouble() * .25; // 사진 높이 / 너비
-        final wPx = min(cellW * .8, (cellH * .9 - 24) / asp);
+        final grow = .9 + rng.nextDouble() * .16; // 카드마다 크기를 조금씩 다르게
+        final wPx = min(cellW * .95, (cellH * 1.0 - 24) / asp) * grow;
         final hPx = wPx * asp;
-        out.add(
+        final cx = baseX + jit(cellW * .34), cy = baseY + jit(cellH * .3);
+        photos.add(
           BoardCard(
             imageUrl: images[pi++ % images.length],
             xRatio: ((cx - wPx / 2) / bw).clamp(.01, .99 - wPx / bw),
             yRatio: ((cy - (hPx + 24) / 2) / bh).clamp(.01, .99 - (hPx + 24) / bh),
             widthRatio: wPx / bw,
             heightRatio: hPx / bw,
-            rotation: (rng.nextDouble() - .5) * .16,
+            rotation: jit(.44),
           ),
         );
       }
     }
-    return out;
+    // 겹치는 순서를 섞고, 문구 카드는 항상 사진 위에 올린다(가려지지 않게).
+    photos.shuffle(rng);
+    return [...photos, ...texts2];
   }
 
   bool _overlaps(Rect a, Rect b) {
