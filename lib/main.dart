@@ -7,49 +7,18 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
-import 'dart:js_interop';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-
-// ─────────────────────────────────────────────
-// ★ WebAudio 바인딩 (dart:js_interop) — 레트로 신스 효과음용
-// ─────────────────────────────────────────────
-@JS('AudioContext')
-extension type WebAudioContext._(JSObject _) implements JSObject {
-  external factory WebAudioContext();
-  external num get currentTime;
-  external String get state;
-  external JSPromise resume();
-  external WebOscillatorNode createOscillator();
-  external WebGainNode createGain();
-  external JSObject get destination;
-}
-
-@JS()
-extension type WebOscillatorNode._(JSObject _) implements JSObject {
-  external set type(String value);
-  external WebAudioParam get frequency;
-  external void connect(JSObject node);
-  external void start(num when);
-  external void stop(num when);
-}
-
-@JS()
-extension type WebGainNode._(JSObject _) implements JSObject {
-  external WebAudioParam get gain;
-  external void connect(JSObject node);
-}
-
-@JS()
-extension type WebAudioParam._(JSObject _) implements JSObject {
-  external void setValueAtTime(num value, num time);
-  external void exponentialRampToValueAtTime(num value, num time);
-}
+import 'intro.dart';
+import 'web_synth.dart';
 
 // ★ 공유 링크 해시 — Flutter 라우터가 URL을 덮어쓰기 전에 main()에서 캡처
 String initialUrlHash = '';
+
+/// 보드 로딩이 끝나면 true — 인트로의 HELLO 단계 진입 조건.
+final ValueNotifier<bool> appReadyNotifier = ValueNotifier<bool>(false);
 
 void main() {
   initialUrlHash = html.window.location.hash;
@@ -66,7 +35,56 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
       ),
-      home: const VisionBoardPage(),
+      home: const IntroGate(),
+    );
+  }
+}
+
+
+/// 앱 위에 인트로를 덮어 보여주는 게이트.
+/// - 공유 링크(#b=)로 들어온 방문자는 인트로 없이 바로 보드를 본다.
+/// - 재방문자(intro_seen)만 SKIP(▸▸)/S 키를 쓸 수 있다.
+/// - A(진단 시작)를 누르면 진단 모드를 열고 인트로를 페이드아웃한다.
+class IntroGate extends StatefulWidget {
+  const IntroGate({super.key});
+
+  @override
+  State<IntroGate> createState() => _IntroGateState();
+}
+
+class _IntroGateState extends State<IntroGate> {
+  final _pageKey = GlobalKey<_VisionBoardPageState>();
+  late bool _showIntro = !initialUrlHash.startsWith('#b=');
+  bool _returning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((p) {
+      if (mounted) setState(() => _returning = p.getBool('intro_seen') ?? false);
+    });
+  }
+
+  Future<void> _markSeen() async {
+    final p = await SharedPreferences.getInstance();
+    await p.setBool('intro_seen', true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        VisionBoardPage(key: _pageKey),
+        if (_showIntro)
+          IntroOverlay(
+            appReady: appReadyNotifier,
+            allowSkip: _returning,
+            onStarted: _markSeen,
+            onStartDiagnosis: () => _pageKey.currentState?._startQuiz(),
+            onFinished: () => setState(() => _showIntro = false),
+          ),
+      ],
     );
   }
 }
@@ -1191,9 +1209,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   bool _isSharedView = false;
   String? _sharedResultMood; // 공유한 사람의 진단 결과
 
-  // ★ 사운드 (HTML 원본의 WebAudio 블립/차임 포팅)
-  bool _soundOn = true;
-  WebAudioContext? _audioCtx;
+  // ★ 사운드는 인트로와 공유하는 WebSynth를 쓴다 (lib/web_synth.dart)
+  bool get _soundOn => WebSynth.instance.enabled;
 
   final GlobalKey _boardKey = GlobalKey();
   late AnimationController _introController;
@@ -1942,14 +1959,6 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         if (mounted) _startIntroAnimation();
       });
     });
-    // ★ 첫 방문이면 DREAM OS 진단으로 시작
-    if (!(prefs.getBool('quiz_done') ?? false)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Future.delayed(const Duration(milliseconds: 600), () {
-          if (mounted && !_showQuiz) _startQuiz();
-        });
-      });
-    }
   }
 
   Future<void> _saveBoard() async {
@@ -2005,72 +2014,12 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   }
 
   // ─────────────────────────────────────────────
-  // ★ 사운드 — HTML 원본의 WebAudio 신스 블립/차임 포팅
-  // 브라우저 autoplay 정책상 첫 사용자 클릭 후부터 소리가 남
+  // ★ 사운드 — 공용 WebSynth로 위임 (브라우저 autoplay 정책상 첫 클릭 후부터 소리남)
   // ─────────────────────────────────────────────
-
-  WebAudioContext? _ensureAudio() {
-    if (!_soundOn) return null;
-    try {
-      _audioCtx ??= WebAudioContext();
-      if (_audioCtx!.state == 'suspended') _audioCtx!.resume();
-      return _audioCtx;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  void _playTone(
-    double freq,
-    double dur,
-    String type,
-    double peak, [
-    double delay = 0,
-  ]) {
-    final ctx = _ensureAudio();
-    if (ctx == null) return;
-    try {
-      final t0 = ctx.currentTime.toDouble() + delay;
-      final osc = ctx.createOscillator();
-      final gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, t0);
-      gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t0);
-      osc.stop(t0 + dur + 0.03);
-    } catch (_) {}
-  }
-
-  void _buttonBlip() => _playTone(880, .08, 'square', .10);
-  void _dpadBlip() => _playTone(660, .05, 'square', .07);
-  void _pickBlip(bool on) => _playTone(on ? 1180 : 740, .05, 'sine', .06);
-
-  // 무드 전환 차임 — HTML 원본의 시퀀스/파형 그대로
-  void _moodChime(String key) {
-    const seqs = {
-      'manifestation': [523.0, 659.0, 784.0, 988.0],
-      'soft_life': [440.0, 554.0, 659.0],
-      'that_girl': [392.0, 494.0, 587.0],
-      'cyber_dream': [300.0, 600.0, 466.0, 900.0],
-      'wanderlust': [349.0, 415.0, 523.0],
-    };
-    const waves = {
-      'manifestation': 'sine',
-      'soft_life': 'sine',
-      'that_girl': 'triangle',
-      'cyber_dream': 'sawtooth',
-      'wanderlust': 'sine',
-    };
-    final seq = seqs[key] ?? seqs['manifestation']!;
-    final wave = waves[key] ?? 'sine';
-    for (var i = 0; i < seq.length; i++) {
-      _playTone(seq[i], .24, wave, .11, i * 0.09);
-    }
-  }
+  void _buttonBlip() => WebSynth.instance.buttonBlip();
+  void _dpadBlip() => WebSynth.instance.dpadBlip();
+  void _pickBlip(bool on) => WebSynth.instance.pickBlip(on);
+  void _moodChime(String key) => WebSynth.instance.moodChime(key);
 
   // ─────────────────────────────────────────────
   // ★ 스토리 export — 보드 캡처를 1080×1920 세로 프레임에 합성
@@ -3216,7 +3165,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                   // ★ 사운드 토글
                   GestureDetector(
                     onTap: () {
-                      setState(() => _soundOn = !_soundOn);
+                      setState(() => WebSynth.instance.enabled = !WebSynth.instance.enabled);
                       if (_soundOn) _buttonBlip();
                     },
                     child: Padding(
@@ -4044,6 +3993,12 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 
   @override
   Widget build(BuildContext context) {
+    // ★ 보드 로딩이 끝나면 인트로에 알린다 (HELLO 단계 진입 조건)
+    if (!isLoading && !appReadyNotifier.value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        appReadyNotifier.value = true;
+      });
+    }
     if (isLoading)
       return Scaffold(
         backgroundColor: _theme.deviceBg,
