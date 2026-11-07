@@ -4650,28 +4650,30 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => Dialog(
           backgroundColor: _theme.deviceBg,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
           child: Container(
-            width: 600,
-            padding: const EdgeInsets.all(24),
-            child: Column(
+            constraints: const BoxConstraints(maxWidth: 600),
+            padding: const EdgeInsets.all(20),
+            child: SingleChildScrollView(
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isEdit ? 'EDIT TEXT' : 'ADD TEXT',
+                  isEdit ? tr('글귀 수정', 'EDIT TEXT') : tr('글귀 추가', 'ADD TEXT'),
                   style: TextStyle(
                     color: _theme.textPrimary,
                     fontSize: 14,
-                    fontFamily: 'SpaceMono',
+                    fontFamily: 'Jua',
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
+                LayoutBuilder(
+                  builder: (ctx2, box) {
+                    // 폰 폭에서는 미리보기를 위로 올려 한 열로 쌓는다.
+                    final narrow = box.maxWidth < 480;
+                    final editor = Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           TextField(
@@ -4680,7 +4682,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                             maxLines: 4,
                             onChanged: (_) => setDialogState(() {}),
                             decoration: InputDecoration(
-                              hintText: 'Enter text...',
+                              hintText: tr('글귀를 입력하세요', 'Enter text...'),
                               hintStyle: TextStyle(color: _theme.textSecondary),
                               enabledBorder: OutlineInputBorder(
                                 borderSide: BorderSide(
@@ -4694,11 +4696,11 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'STYLE',
+                            tr('스타일', 'STYLE'),
                             style: TextStyle(
                               color: _theme.textSecondary,
                               fontSize: 11,
-                              fontFamily: 'SpaceMono',
+                              fontFamily: 'Jua',
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -4741,11 +4743,11 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'TEXT COLOR',
+                            tr('글자 색', 'TEXT COLOR'),
                             style: TextStyle(
                               color: _theme.textSecondary,
                               fontSize: 11,
-                              fontFamily: 'SpaceMono',
+                              fontFamily: 'Jua',
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -4786,18 +4788,16 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                 .toList(),
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Column(
+                      );
+                    final preview = Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PREVIEW',
+                          tr('미리보기', 'PREVIEW'),
                           style: TextStyle(
                             color: _theme.textSecondary,
                             fontSize: 11,
-                            fontFamily: 'SpaceMono',
+                            fontFamily: 'Jua',
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -4808,7 +4808,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                           child: Center(
                             child: _buildSpecialTextCard(
                               text: controller.text.isEmpty
-                                  ? 'Preview'
+                                  ? tr('미리보기', 'Preview')
                                   : controller.text,
                               style: selectedStyle,
                               textColor: selectedTextColor,
@@ -4820,8 +4820,21 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                           ),
                         ),
                       ],
-                    ),
-                  ],
+                    );
+                    return narrow
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [preview, const SizedBox(height: 14), editor],
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: editor),
+                              const SizedBox(width: 16),
+                              preview,
+                            ],
+                          );
+                  },
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -4830,7 +4843,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                     TextButton(
                       onPressed: () => Navigator.pop(ctx),
                       child: Text(
-                        'CANCEL',
+                        tr('취소', 'CANCEL'),
                         style: TextStyle(color: _theme.textSecondary),
                       ),
                     ),
@@ -4876,16 +4889,17 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                         Navigator.pop(ctx);
                       },
                       child: Text(
-                        isEdit ? 'SAVE' : 'ADD',
+                        isEdit ? tr('저장', 'SAVE') : tr('추가', 'ADD'),
                         style: TextStyle(
                           color: _theme.deviceBg,
-                          fontFamily: 'SpaceMono',
+                          fontFamily: 'Jua',
                         ),
                       ),
                     ),
                   ],
                 ),
               ],
+            ),
             ),
           ),
         ),
@@ -4907,9 +4921,10 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => Dialog(
           backgroundColor: _theme.deviceBg,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
           child: Container(
-            width: 520,
-            padding: const EdgeInsets.all(24),
+            constraints: const BoxConstraints(maxWidth: 520),
+            padding: const EdgeInsets.all(20),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,

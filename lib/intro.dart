@@ -28,11 +28,7 @@ const _kGreen = Color(0xFF7DFFB0);
 const _kBubbleBg = Color(0xFFFFF6E0);
 
 // 디자인 기준 크기 (뷰포트가 작으면 FittedBox가 비율 유지로 축소)
-const double _kDesignW = 960;
-const double _kDesignH = 800;
 const double _kShellTop = 150;
-const double _kShellApproxH = 640;
-const double _kScreenH = 400;
 
 TextStyle _ps(
   double size,
@@ -64,19 +60,15 @@ TextStyle _jua(double size, Color color, {double height = 1.2}) => TextStyle(
   decoration: TextDecoration.none,
 );
 
-TextStyle _mono(
-  double size,
-  Color color, {
-  double ls = 0,
-  bool bold = false,
-}) => TextStyle(
-  fontFamily: 'SpaceMono',
-  fontSize: size,
-  color: color,
-  letterSpacing: ls,
-  fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
-  decoration: TextDecoration.none,
-);
+TextStyle _mono(double size, Color color, {double ls = 0, bool bold = false}) =>
+    TextStyle(
+      fontFamily: 'SpaceMono',
+      fontSize: size,
+      color: color,
+      letterSpacing: ls,
+      fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+      decoration: TextDecoration.none,
+    );
 
 enum IntroPhase { idle, rise, insert, power, boot, logo, ready, done }
 
@@ -140,6 +132,13 @@ class _IntroOverlayState extends State<IntroOverlay>
   late final AnimationController _flash; // 로고 밝기 플래시 0.52s
   late final AnimationController _fadeOut; // 인트로 종료 페이드
 
+  // 휴대폰 세로면 세로형 콘솔(좁고 길게), 아니면 가로형 콘솔로 그린다.
+  bool _portrait = false;
+  double get _dw => _portrait ? 400 : 960;
+  double get _dh => _portrait ? 880 : 800;
+  double get _shellApproxH => _portrait ? 700 : 640;
+  double get _screenH => _portrait ? 420 : 400;
+
   IntroPhase _phase = IntroPhase.idle;
   _LogoPos _logoPos = _LogoPos.hidden;
   int _lineIdx = -1;
@@ -158,8 +157,10 @@ class _IntroOverlayState extends State<IntroOverlay>
   @override
   void initState() {
     super.initState();
-    _clock = AnimationController(vsync: this, duration: const Duration(hours: 1))
-      ..repeat();
+    _clock = AnimationController(
+      vsync: this,
+      duration: const Duration(hours: 1),
+    )..repeat();
     _rise = AnimationController(vsync: this, duration: _ms(1000));
     _insert = AnimationController(vsync: this, duration: _ms(260));
     _shake = AnimationController(vsync: this, duration: _ms(260));
@@ -253,26 +254,25 @@ class _IntroOverlayState extends State<IntroOverlay>
       _bubble = l.b;
     });
     var c = 0;
-    final iv = Timer.periodic(
-      Duration(microseconds: (20000 / _sp).round()),
-      (timer) {
-        if (!mounted) {
-          timer.cancel();
-          return;
-        }
-        c = min(l.t.length, c + 2);
-        setState(() => _charIdx = c);
-        if (c % 6 == 0) _synth.typeTick();
-        if (c >= l.t.length) {
-          timer.cancel();
-          _after(150, () {
-            if (l.s.isNotEmpty) _synth.ok();
-            setState(() => _okCount = i + 1);
-            _after(200, () => _typeLine(i + 1));
-          });
-        }
-      },
-    );
+    final iv = Timer.periodic(Duration(microseconds: (20000 / _sp).round()), (
+      timer,
+    ) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      c = min(l.t.length, c + 2);
+      setState(() => _charIdx = c);
+      if (c % 6 == 0) _synth.typeTick();
+      if (c >= l.t.length) {
+        timer.cancel();
+        _after(150, () {
+          if (l.s.isNotEmpty) _synth.ok();
+          setState(() => _okCount = i + 1);
+          _after(200, () => _typeLine(i + 1));
+        });
+      }
+    });
     _intervals.add(iv);
   }
 
@@ -395,31 +395,42 @@ class _IntroOverlayState extends State<IntroOverlay>
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: SizedBox(
-                        width: _kDesignW,
-                        height: _kDesignH,
-                        child: AnimatedBuilder(
-                          animation: Listenable.merge([
-                            _clock,
-                            _rise,
-                            _insert,
-                            _shake,
-                            _crt,
-                            _logoDrop,
-                            _logoTop,
-                            _flash,
-                          ]),
-                          builder: (context, _) => _buildConsole(),
-                        ),
-                      ),
+                    child: LayoutBuilder(
+                      builder: (context, box) {
+                        _portrait =
+                            box.maxWidth < 700 ||
+                            box.maxWidth < box.maxHeight * 0.95;
+                        return FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: SizedBox(
+                            width: _dw,
+                            height: _dh,
+                            child: AnimatedBuilder(
+                              animation: Listenable.merge([
+                                _clock,
+                                _rise,
+                                _insert,
+                                _shake,
+                                _crt,
+                                _logoDrop,
+                                _logoTop,
+                                _flash,
+                              ]),
+                              builder: (context, _) => _buildConsole(),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   if (widget.allowSkip &&
                       _phase != IntroPhase.ready &&
                       _phase != IntroPhase.done)
-                    Positioned(top: 18, right: 24, child: _SkipButton(onTap: _skip)),
+                    Positioned(
+                      top: 18,
+                      right: 24,
+                      child: _SkipButton(onTap: _skip),
+                    ),
                 ],
               ),
             ),
@@ -437,8 +448,7 @@ class _IntroOverlayState extends State<IntroOverlay>
     IntroPhase.done,
   }.contains(_phase);
 
-  bool get _inserted =>
-      _phase != IntroPhase.idle && _phase != IntroPhase.rise;
+  bool get _inserted => _phase != IntroPhase.idle && _phase != IntroPhase.rise;
 
   Widget _buildConsole() {
     final t = _clock.value * 3600.0;
@@ -452,7 +462,10 @@ class _IntroOverlayState extends State<IntroOverlay>
           top: _kShellTop,
           left: 0,
           right: 0,
-          child: Transform.translate(offset: Offset(0, shake), child: _buildShell(t)),
+          child: Transform.translate(
+            offset: Offset(0, shake),
+            child: _buildShell(t),
+          ),
         ),
         if (!_inserted && cart != null) cart, // 상승 중: 셸 앞
       ],
@@ -475,7 +488,7 @@ class _IntroOverlayState extends State<IntroOverlay>
     if (!_inserted) {
       final v = _rise.value;
       final e = const Cubic(.16, .84, .26, 1).transform(v);
-      topRel = lerpDouble(_kShellApproxH + 60, -118, e);
+      topRel = lerpDouble(_shellApproxH + 60, -118, e);
       rot = lerpDouble(10, -5, e) * pi / 180;
       scale = lerpDouble(.9, 1.1, e);
       opacity = min(1.0, v * 1000 / 250);
@@ -489,7 +502,7 @@ class _IntroOverlayState extends State<IntroOverlay>
       glow = 1 - e;
     }
     return Positioned(
-      left: (_kDesignW - 150) / 2,
+      left: (_dw - 150) / 2,
       top: _kShellTop + topRel,
       child: Opacity(
         opacity: opacity,
@@ -498,7 +511,10 @@ class _IntroOverlayState extends State<IntroOverlay>
           transform: Matrix4.identity()
             ..rotateZ(rot)
             ..scaleByDouble(scale, scale, 1, 1),
-          child: _Cartridge(glow: glow, sweep: _wave(_clock.value * 3600.0, 1.6)),
+          child: _Cartridge(
+            glow: glow,
+            sweep: _wave(_clock.value * 3600.0, 1.6),
+          ),
         ),
       ),
     );
@@ -556,7 +572,9 @@ class _IntroOverlayState extends State<IntroOverlay>
                 height: 9,
                 decoration: const BoxDecoration(
                   color: _kBezel,
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(5)),
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(5),
+                  ),
                 ),
               ),
             ),
@@ -604,27 +622,33 @@ class _IntroOverlayState extends State<IntroOverlay>
                           height: 14,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _phase == IntroPhase.idle ? _kMuted : _kGreen,
+                            color: _phase == IntroPhase.idle
+                                ? _kMuted
+                                : _kGreen,
                             boxShadow: _phase == IntroPhase.idle
                                 ? null
-                                : const [BoxShadow(color: _kGreen, blurRadius: 8)],
+                                : const [
+                                    BoxShadow(color: _kGreen, blurRadius: 8),
+                                  ],
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                Text('OFF · ON', style: _mono(9, _kMuted, ls: 2)),
+                if (!_portrait) ...[
+                  const SizedBox(width: 10),
+                  Text('OFF · ON', style: _mono(9, _kMuted, ls: 2)),
+                ],
               ],
             ),
           ),
           Text(
             'DREAM OS',
-            style: _ps(12, const Color(0x38FFFFFF), ls: 2),
+            style: _ps(_portrait ? 10 : 12, const Color(0x38FFFFFF), ls: 2),
           ),
           SizedBox(
-            width: 150,
+            width: _portrait ? 112 : 150,
             child: Text.rich(
               TextSpan(
                 children: [
@@ -655,50 +679,92 @@ class _IntroOverlayState extends State<IntroOverlay>
           bottomRight: Radius.circular(46),
           bottomLeft: Radius.circular(18),
         ),
-        boxShadow: [BoxShadow(color: Color(0x0FFFFFFF), offset: Offset(0, 2), blurRadius: 6)],
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0FFFFFFF),
+            offset: Offset(0, 2),
+            blurRadius: 6,
+          ),
+        ],
       ),
       child: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 22, 18, 16),
+            padding: _portrait
+                ? const EdgeInsets.fromLTRB(12, 28, 12, 14)
+                : const EdgeInsets.fromLTRB(18, 22, 18, 16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 52,
-                  height: _kScreenH,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Opacity(
-                        opacity: ledOn ? 1 : ledBlink,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: ledOn ? _kGreen : const Color(0xFFFF4D6D),
-                            boxShadow: [
-                              BoxShadow(
-                                color: ledOn ? _kGreen : const Color(0xFFFF4D6D),
-                                blurRadius: ledOn ? 10 : 10 * ledBlink,
+              children: _portrait
+                  ? [Expanded(child: _buildScreen(t))]
+                  : [
+                      SizedBox(
+                        width: 52,
+                        height: _screenH,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Opacity(
+                              opacity: ledOn ? 1 : ledBlink,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: ledOn
+                                      ? _kGreen
+                                      : const Color(0xFFFF4D6D),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: ledOn
+                                          ? _kGreen
+                                          : const Color(0xFFFF4D6D),
+                                      blurRadius: ledOn ? 10 : 10 * ledBlink,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text('POWER', style: _mono(7, _kMuted2, ls: 1.5)),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text('POWER', style: _mono(7, _kMuted2, ls: 1.5)),
+                      const SizedBox(width: 14),
+                      Expanded(child: _buildScreen(t)),
+                      const SizedBox(width: 14),
+                      const SizedBox(width: 52),
                     ],
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(child: _buildScreen(t)),
-                const SizedBox(width: 14),
-                const SizedBox(width: 52),
-              ],
             ),
           ),
+          if (_portrait)
+            Positioned(
+              top: 8,
+              left: 16,
+              child: Row(
+                children: [
+                  Opacity(
+                    opacity: ledOn ? 1 : ledBlink,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: ledOn ? _kGreen : const Color(0xFFFF4D6D),
+                        boxShadow: [
+                          BoxShadow(
+                            color: ledOn ? _kGreen : const Color(0xFFFF4D6D),
+                            blurRadius: ledOn ? 8 : 8 * ledBlink,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text('POWER', style: _mono(7, _kMuted2, ls: 1.5)),
+                ],
+              ),
+            ),
           Positioned(
             top: 6,
             left: 0,
@@ -706,7 +772,11 @@ class _IntroOverlayState extends State<IntroOverlay>
             child: Center(
               child: Text(
                 'DREAM MATRIX WITH STEREO VIBES',
-                style: _mono(8, _kMuted2, ls: 2),
+                style: _mono(
+                  _portrait ? 6 : 8,
+                  _kMuted2,
+                  ls: _portrait ? 1 : 2,
+                ),
               ),
             ),
           ),
@@ -730,11 +800,13 @@ class _IntroOverlayState extends State<IntroOverlay>
               ? SystemMouseCursors.click
               : SystemMouseCursors.basic,
           child: Container(
-            height: _kScreenH,
+            height: _screenH,
             decoration: BoxDecoration(
               color: _kScreenBg,
               borderRadius: BorderRadius.circular(8),
-              boxShadow: const [BoxShadow(color: Color(0xB3000000), spreadRadius: 2)],
+              boxShadow: const [
+                BoxShadow(color: Color(0xB3000000), spreadRadius: 2),
+              ],
             ),
             clipBehavior: Clip.antiAlias,
             child: LayoutBuilder(
@@ -761,7 +833,9 @@ class _IntroOverlayState extends State<IntroOverlay>
                       ),
                     ),
                   ),
-                  const Positioned.fill(child: IgnorePointer(child: _Scanlines())),
+                  const Positioned.fill(
+                    child: IgnorePointer(child: _Scanlines()),
+                  ),
                   if (_phase == IntroPhase.idle) _buildIdle(t),
                   if (_phase == IntroPhase.boot) _buildBootLog(box.maxWidth),
                   if (_phase == IntroPhase.boot && _lineIdx >= 0)
@@ -876,17 +950,23 @@ class _IntroOverlayState extends State<IntroOverlay>
             child: Text(
               'PRESS START',
               style: _ps(
-                22,
+                _portrait ? 17 : 22,
                 _kViolet,
-                ls: 3,
-                shadows: const [Shadow(color: Color(0x99CF8BFF), blurRadius: 18)],
+                ls: _portrait ? 2 : 3,
+                shadows: const [
+                  Shadow(color: Color(0x99CF8BFF), blurRadius: 18),
+                ],
               ),
             ),
           ),
           const SizedBox(height: 22),
-          Text(
-            'START 버튼이나 화면을 눌러 스텔라를 깨워주세요',
-            style: _jua(15, const Color(0xFF8E78B8)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'START 버튼이나 화면을 눌러 스텔라를 깨워주세요',
+              textAlign: TextAlign.center,
+              style: _jua(_portrait ? 13 : 15, const Color(0xFF8E78B8)),
+            ),
           ),
         ],
       ),
@@ -904,7 +984,10 @@ class _IntroOverlayState extends State<IntroOverlay>
         opacity: t < delay ? 0 : op.clamp(0.0, 1.0),
         child: Transform.translate(
           offset: Offset(14 * p, -30 * p),
-          child: Transform.scale(scale: scale, child: Text(ch, style: _ps(size, _kMuted))),
+          child: Transform.scale(
+            scale: scale,
+            child: Text(ch, style: _ps(size, _kMuted)),
+          ),
         ),
       ),
     );
@@ -924,17 +1007,21 @@ class _IntroOverlayState extends State<IntroOverlay>
           padding: const EdgeInsets.only(bottom: 3),
           child: Row(
             children: [
-              Text(text, style: _vt(24, _kText), softWrap: false),
+              Text(
+                text,
+                style: _vt(_portrait ? 19 : 24, _kText),
+                softWrap: false,
+              ),
               if (cursor) ...[
                 const SizedBox(width: 10),
                 Opacity(
                   opacity: (_clock.value * 3600 % 0.6) < .3 ? 1 : 0,
-                  child: Text('█', style: _vt(24, _kViolet)),
+                  child: Text('█', style: _vt(_portrait ? 19 : 24, _kViolet)),
                 ),
               ],
               if (ok) ...[
                 const SizedBox(width: 10),
-                Text(l.s, style: _vt(24, _kGreen)),
+                Text(l.s, style: _vt(_portrait ? 19 : 24, _kGreen)),
               ],
             ],
           ),
@@ -950,14 +1037,20 @@ class _IntroOverlayState extends State<IntroOverlay>
     );
     return Positioned.fill(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 26),
+        padding: EdgeInsets.symmetric(
+          horizontal: _portrait ? 16 : 32,
+          vertical: _portrait ? 16 : 26,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: lines),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: lines,
+            ),
             FractionallySizedBox(
-              widthFactor: .62,
+              widthFactor: _portrait ? .96 : .62,
               alignment: Alignment.centerLeft,
               child: _LoadingBar(progress: prog),
             ),
@@ -970,8 +1063,8 @@ class _IntroOverlayState extends State<IntroOverlay>
   Widget _buildBootMascot(double t) {
     final bob = -7 * _wave(t, 1.1);
     return Positioned(
-      right: 30,
-      bottom: 24,
+      right: _portrait ? 12 : 30,
+      bottom: _portrait ? 54 : 24,
       child: _Pop(
         key: const ValueKey('bootMascot'),
         duration: const Duration(milliseconds: 400),
@@ -980,18 +1073,22 @@ class _IntroOverlayState extends State<IntroOverlay>
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              margin: const EdgeInsets.only(bottom: 46),
+              margin: EdgeInsets.only(bottom: _portrait ? 34 : 46),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: _kBubbleBg,
                 border: Border.all(color: _kInk, width: 3),
               ),
-              child: Text(_bubble, style: _jua(15, _kInk), softWrap: false),
+              child: Text(
+                _bubble,
+                style: _jua(_portrait ? 13 : 15, _kInk),
+                softWrap: false,
+              ),
             ),
             const SizedBox(width: 10),
             Transform.translate(
               offset: Offset(0, bob),
-              child: Mascot(px: 5, closed: _eyesClosed(t)),
+              child: Mascot(px: _portrait ? 4 : 5, closed: _eyesClosed(t)),
             ),
           ],
         ),
@@ -1022,9 +1119,9 @@ class _IntroOverlayState extends State<IntroOverlay>
         Text(
           'DREAM OS',
           style: _ps(
-            40,
+            _portrait ? 30 : 40,
             _kViolet,
-            ls: 4,
+            ls: _portrait ? 3 : 4,
             shadows: [
               const Shadow(color: _kInk, offset: Offset(4, 4)),
               const Shadow(color: Color(0x80CF8BFF), blurRadius: 30),
@@ -1036,7 +1133,7 @@ class _IntroOverlayState extends State<IntroOverlay>
         const SizedBox(height: 14),
         Text(
           'VER 6 ✦ VISION BOARD',
-          style: _ps(10, _kPink, ls: 3),
+          style: _ps(_portrait ? 8 : 10, _kPink, ls: _portrait ? 2 : 3),
           softWrap: false,
         ),
       ],
@@ -1074,37 +1171,46 @@ class _IntroOverlayState extends State<IntroOverlay>
     return Positioned(
       left: 0,
       right: 0,
-      top: screenH * .3,
+      top: screenH * (_portrait ? .2 : .3),
       bottom: 0,
       child: _FadeIn(
         duration: const Duration(milliseconds: 500),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
+            Flex(
+              direction: _portrait ? Axis.vertical : Axis.horizontal,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Transform.translate(
                   offset: Offset(0, bob),
-                  child: Mascot(px: 7, closed: _eyesClosed(t)),
+                  child: Mascot(px: _portrait ? 6 : 7, closed: _eyesClosed(t)),
                 ),
-                const SizedBox(width: 18),
+                SizedBox(width: _portrait ? 0 : 18, height: _portrait ? 10 : 0),
                 _Pop(
                   delay: const Duration(milliseconds: 150),
                   duration: const Duration(milliseconds: 450),
                   child: Container(
-                    constraints: const BoxConstraints(maxWidth: 300),
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                    constraints: BoxConstraints(
+                      maxWidth: _portrait ? 280 : 300,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
                       color: _kBubbleBg,
                       border: Border.all(color: _kInk, width: 3),
                       boxShadow: const [
-                        BoxShadow(color: Color(0x59000000), offset: Offset(5, 5)),
+                        BoxShadow(
+                          color: Color(0x59000000),
+                          offset: Offset(5, 5),
+                        ),
                       ],
                     ),
                     child: Text.rich(
                       TextSpan(
-                        style: _jua(20, _kInk, height: 1.4),
+                        style: _jua(_portrait ? 17 : 20, _kInk, height: 1.4),
                         children: const [
                           TextSpan(text: '안녕! 나는 '),
                           TextSpan(
@@ -1128,7 +1234,10 @@ class _IntroOverlayState extends State<IntroOverlay>
                 onTap: done ? null : _pressA,
                 builder: (pressed) => Container(
                   transform: Matrix4.translationValues(0, pressed ? 4 : 0, 0),
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: _kPink,
                     border: Border.all(color: _kInk, width: 3),
@@ -1178,63 +1287,84 @@ class _IntroOverlayState extends State<IntroOverlay>
     final startPulse = idle ? _wave(t, 1.4) : 0.0;
     final aPulse = ready ? _wave(t, 1.2) : 0.0;
     const tilt = -18 * pi / 180;
+
+    final pills = Transform.rotate(
+      angle: tilt,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _pillButton(
+            label: 'SELECT',
+            color: const Color(0xFF241248),
+            textStyle: _mono(9, _kMuted, ls: 2),
+            onTap: _synth.blip,
+          ),
+          const SizedBox(width: 26),
+          _pillButton(
+            label: 'START',
+            color: idle ? _kPink : const Color(0xFF241248),
+            textStyle: _mono(9, _kText, ls: 2, bold: true),
+            pulse: startPulse,
+            onTap: _press,
+          ),
+        ],
+      ),
+    );
+    final ab = Transform.rotate(
+      angle: tilt,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 28),
+            child: _roundButton(
+              label: 'B',
+              top: const Color(0xFFD58CFF),
+              bottom: const Color(0xFF8A3FBF),
+              edge: const Color(0xFF4A1D6E),
+              labelColor: _kMuted,
+              onTap: _synth.blip,
+            ),
+          ),
+          const SizedBox(width: 18),
+          _roundButton(
+            label: 'A',
+            top: const Color(0xFFFF9FD6),
+            bottom: const Color(0xFFD0388E),
+            edge: const Color(0xFF7A1A52),
+            labelColor: _kText,
+            pulse: aPulse,
+            onTap: _pressA,
+          ),
+        ],
+      ),
+    );
+
+    if (_portrait) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 18, 24, 4),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [const _DPad(), ab],
+            ),
+            const SizedBox(height: 18),
+            // D-패드 아래 왼쪽에 둬서 오른쪽 A/B와 겹치지 않게 한다.
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(padding: const EdgeInsets.only(left: 22), child: pills),
+            ),
+          ],
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.fromLTRB(36, 22, 36, 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const _DPad(),
-          Transform.rotate(
-            angle: tilt,
-            child: Row(
-              children: [
-                _pillButton(
-                  label: 'SELECT',
-                  color: const Color(0xFF241248),
-                  textStyle: _mono(9, _kMuted, ls: 2),
-                  onTap: _synth.blip,
-                ),
-                const SizedBox(width: 26),
-                _pillButton(
-                  label: 'START',
-                  color: idle ? _kPink : const Color(0xFF241248),
-                  textStyle: _mono(9, _kText, ls: 2, bold: true),
-                  pulse: startPulse,
-                  onTap: _press,
-                ),
-              ],
-            ),
-          ),
-          Transform.rotate(
-            angle: tilt,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 28),
-                  child: _roundButton(
-                    label: 'B',
-                    top: const Color(0xFFD58CFF),
-                    bottom: const Color(0xFF8A3FBF),
-                    edge: const Color(0xFF4A1D6E),
-                    labelColor: _kMuted,
-                    onTap: _synth.blip,
-                  ),
-                ),
-                const SizedBox(width: 18),
-                _roundButton(
-                  label: 'A',
-                  top: const Color(0xFFFF9FD6),
-                  bottom: const Color(0xFFD0388E),
-                  edge: const Color(0xFF7A1A52),
-                  labelColor: _kText,
-                  pulse: aPulse,
-                  onTap: _pressA,
-                ),
-              ],
-            ),
-          ),
-        ],
+        children: [const _DPad(), pills, ab],
       ),
     );
   }
@@ -1337,7 +1467,12 @@ double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 // 마스코트 "스텔라" — 15×14 픽셀 아트 (CustomPainter)
 // ─────────────────────────────────────────────────────────────
 class Mascot extends StatelessWidget {
-  const Mascot({super.key, required this.px, this.closed = false, this.costume});
+  const Mascot({
+    super.key,
+    required this.px,
+    this.closed = false,
+    this.costume,
+  });
 
   final double px;
   final bool closed;
@@ -1366,33 +1501,72 @@ class MascotPainter extends CustomPainter {
   static const costumes = <String, Map<(int, int), String>>{
     // 왕관 + 보석
     'manifestation': {
-      (0, 7): 'C', (1, 7): 'C', (2, 7): 'C',
-      (3, 6): 'C', (3, 7): 'C', (3, 8): 'C',
-      (1, 5): 'W', (1, 9): 'W',
+      (0, 7): 'C',
+      (1, 7): 'C',
+      (2, 7): 'C',
+      (3, 6): 'C',
+      (3, 7): 'C',
+      (3, 8): 'C',
+      (1, 5): 'W',
+      (1, 9): 'W',
     },
     // 새싹 + 잎
     'soft_life': {
-      (0, 7): 'G', (1, 7): 'G', (2, 7): 'G',
-      (3, 6): 'G', (3, 7): 'G', (3, 8): 'G',
-      (1, 5): 'G', (1, 9): 'G', (0, 6): 'R', (0, 8): 'R',
+      (0, 7): 'G',
+      (1, 7): 'G',
+      (2, 7): 'G',
+      (3, 6): 'G',
+      (3, 7): 'G',
+      (3, 8): 'G',
+      (1, 5): 'G',
+      (1, 9): 'G',
+      (0, 6): 'R',
+      (0, 8): 'R',
     },
     // 선글라스
     'that_girl': {
-      (6, 3): 'B', (6, 4): 'B', (6, 5): 'B', (6, 6): 'B', (6, 7): 'B',
-      (6, 8): 'B', (6, 9): 'B', (6, 10): 'B', (6, 11): 'B',
-      (7, 4): 'B', (7, 10): 'B',
+      (6, 3): 'B',
+      (6, 4): 'B',
+      (6, 5): 'B',
+      (6, 6): 'B',
+      (6, 7): 'B',
+      (6, 8): 'B',
+      (6, 9): 'B',
+      (6, 10): 'B',
+      (6, 11): 'B',
+      (7, 4): 'B',
+      (7, 10): 'B',
     },
     // 바이저
     'cyber_dream': {
-      (6, 3): 'V', (6, 4): 'V', (6, 5): 'V', (6, 6): 'V', (6, 7): 'V',
-      (6, 8): 'V', (6, 9): 'V', (6, 10): 'V', (6, 11): 'V',
-      (7, 4): 'V', (7, 5): 'V', (7, 6): 'V', (7, 7): 'V', (7, 8): 'V',
-      (7, 9): 'V', (7, 10): 'V',
+      (6, 3): 'V',
+      (6, 4): 'V',
+      (6, 5): 'V',
+      (6, 6): 'V',
+      (6, 7): 'V',
+      (6, 8): 'V',
+      (6, 9): 'V',
+      (6, 10): 'V',
+      (6, 11): 'V',
+      (7, 4): 'V',
+      (7, 5): 'V',
+      (7, 6): 'V',
+      (7, 7): 'V',
+      (7, 8): 'V',
+      (7, 9): 'V',
+      (7, 10): 'V',
     },
     // 목도리
     'wanderlust': {
-      (9, 4): 'T', (9, 5): 'T', (9, 6): 'T', (9, 7): 'T', (9, 8): 'T',
-      (9, 9): 'T', (9, 10): 'T', (10, 5): 'T', (10, 6): 'T',
+      (9, 4): 'T',
+      (9, 5): 'T',
+      (9, 6): 'T',
+      (9, 7): 'T',
+      (9, 8): 'T',
+      (9, 9): 'T',
+      (9, 10): 'T',
+      (10, 5): 'T',
+      (10, 6): 'T',
     },
   };
 
@@ -1444,7 +1618,10 @@ class MascotPainter extends CustomPainter {
         ch = over[(y, x)] ?? ch;
         paint.color = _palette[ch]!;
         // 배율 축소 시 셀 사이 틈이 생기지 않도록 아주 조금 겹쳐 그린다.
-        canvas.drawRect(Rect.fromLTWH(x * px, y * px, px, px).inflate(.3), paint);
+        canvas.drawRect(
+          Rect.fromLTWH(x * px, y * px, px, px).inflate(.3),
+          paint,
+        );
       }
     }
   }
@@ -1550,7 +1727,10 @@ class _Cartridge extends StatelessWidget {
                 right: 12,
                 bottom: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1D1138),
                     borderRadius: BorderRadius.circular(4),
@@ -1564,11 +1744,21 @@ class _Cartridge extends StatelessWidget {
                           height: 6,
                           child: Row(
                             children: [
-                              Expanded(child: ColoredBox(color: Color(0xFFCF8BFF))),
-                              Expanded(child: ColoredBox(color: Color(0xFFE6D4B6))),
-                              Expanded(child: ColoredBox(color: Color(0xFFCBA24F))),
-                              Expanded(child: ColoredBox(color: Color(0xFF2FE6FF))),
-                              Expanded(child: ColoredBox(color: Color(0xFF52D6C8))),
+                              Expanded(
+                                child: ColoredBox(color: Color(0xFFCF8BFF)),
+                              ),
+                              Expanded(
+                                child: ColoredBox(color: Color(0xFFE6D4B6)),
+                              ),
+                              Expanded(
+                                child: ColoredBox(color: Color(0xFFCBA24F)),
+                              ),
+                              Expanded(
+                                child: ColoredBox(color: Color(0xFF2FE6FF)),
+                              ),
+                              Expanded(
+                                child: ColoredBox(color: Color(0xFF52D6C8)),
+                              ),
                             ],
                           ),
                         ),
@@ -1624,7 +1814,8 @@ class _Scanlines extends StatelessWidget {
   const _Scanlines();
 
   @override
-  Widget build(BuildContext context) => CustomPaint(painter: _ScanlinePainter());
+  Widget build(BuildContext context) =>
+      CustomPaint(painter: _ScanlinePainter());
 }
 
 class _ScanlinePainter extends CustomPainter {
@@ -1684,10 +1875,7 @@ class _BarFillPainter extends CustomPainter {
     final w = size.width * progress;
     final p = Paint()..color = _kViolet;
     for (double x = 0; x < w; x += 10) {
-      canvas.drawRect(
-        Rect.fromLTWH(x, 0, min(8.0, w - x), size.height),
-        p,
-      );
+      canvas.drawRect(Rect.fromLTWH(x, 0, min(8.0, w - x), size.height), p);
     }
   }
 
@@ -1706,7 +1894,9 @@ class _DPad extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF160B2E),
         borderRadius: BorderRadius.circular(7),
-        boxShadow: const [BoxShadow(color: Color(0xFF0A0518), offset: Offset(0, 4))],
+        boxShadow: const [
+          BoxShadow(color: Color(0xFF0A0518), offset: Offset(0, 4)),
+        ],
       ),
     );
     return SizedBox(
@@ -1811,7 +2001,11 @@ class _SkipButtonState extends State<_SkipButton> {
             ),
             child: Text(
               'SKIP ▸▸',
-              style: _mono(11, _hover ? Colors.white : const Color(0xFFB79FDD), ls: 1),
+              style: _mono(
+                11,
+                _hover ? Colors.white : const Color(0xFFB79FDD),
+                ls: 1,
+              ),
             ),
           ),
         ),
