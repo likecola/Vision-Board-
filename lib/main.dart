@@ -2552,8 +2552,12 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     final bw = _boardW > 0 ? _boardW : max(320.0, mq.width - 440);
     final bh = _boardH > 0 ? _boardH : max(300.0, mq.height - 200);
     final aspect = bw / bh;
+    final u = _unit(bw, bh); // 카드 크기 비율의 기준(렌더링과 동일)
     final int cols, rows;
-    if (aspect >= 1.25) {
+    if (aspect >= 1.9) {
+      cols = 5;
+      rows = 2;
+    } else if (aspect >= 1.25) {
       cols = 4;
       rows = 3;
     } else if (aspect >= 0.8) {
@@ -2593,8 +2597,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
             text: text,
             xRatio: ((cx - wPx / 2) / bw).clamp(.01, .99 - wPx / bw),
             yRatio: ((cy - hPx / 2) / bh).clamp(.01, .99 - hPx / bh),
-            widthRatio: wPx / bw,
-            heightRatio: hPx / bw,
+            widthRatio: wPx / u,
+            heightRatio: hPx / u,
             rotation: jit(.2),
             style: style,
             paperColor: paper,
@@ -2605,17 +2609,18 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         // 칸을 거의 채우는 크기에 위치를 크게 흔들어, 이웃끼리 살짝 겹치게 한다.
         final asp = .9 + rng.nextDouble() * .25; // 사진 높이 / 너비
         final grow = .9 + rng.nextDouble() * .16; // 카드마다 크기를 조금씩 다르게
-        final wPx = min(cellW * .95, (cellH * 1.0 - 24) / asp) * grow;
+        final wPx = min(cellW * .92, (cellH * .84 - 24) / asp) * grow;
         final hPx = wPx * asp;
-        final cx = baseX + jit(cellW * .34), cy = baseY + jit(cellH * .3);
+        final cx = baseX + jit(cellW * .34), cy = baseY + jit(cellH * .2);
         photos.add(
           BoardCard(
             imageUrl: images[pi++ % images.length],
-            xRatio: ((cx - wPx / 2) / bw).clamp(.01, .99 - wPx / bw),
-            yRatio: ((cy - (hPx + 24) / 2) / bh).clamp(.01, .99 - (hPx + 24) / bh),
-            widthRatio: wPx / bw,
-            heightRatio: hPx / bw,
-            rotation: jit(.44),
+            // 기울어져도 가장자리에 닿지 않도록 여백을 둔다.
+            xRatio: ((cx - wPx / 2) / bw).clamp(.03, .97 - wPx / bw),
+            yRatio: ((cy - (hPx + 24) / 2) / bh).clamp(.04, .96 - (hPx + 24) / bh),
+            widthRatio: wPx / u,
+            heightRatio: hPx / u,
+            rotation: jit(.4),
           ),
         );
       }
@@ -2744,16 +2749,21 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     );
   }
 
+  /// 카드 크기의 기준 길이. 폭에만 비례하면 창을 가로로 넓힐 때 카드만 커져서
+  /// 보드 아래로 넘치므로, 높이로 상한을 둔다.
+  double _unit(double w, double h) => min(w, h * 1.5);
+
   List<Widget> _buildControls(
     BoardCard card,
     int index,
     double screenW,
     double screenH,
   ) {
+    final u = _unit(screenW, screenH);
     final left = card.x(screenW);
     final top = card.y(screenH);
-    final right = left + card.width(screenW);
-    final bottom = top + card.height(screenW) + 24;
+    final right = left + card.width(u);
+    final bottom = top + card.height(u) + 24;
     return [
       Positioned(
         left: right - 14,
@@ -2826,10 +2836,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           bg: _theme.buttonBg,
           iconColor: _theme.textPrimary,
           onPanUpdate: (d) => setState(() {
-            card.widthRatio = ((card.width(screenW) + d.delta.dx) / screenW)
-                .clamp(0.05, 0.6);
-            card.heightRatio = ((card.height(screenW) + d.delta.dy) / screenW)
-                .clamp(0.03, 0.6);
+            card.widthRatio = ((card.width(u) + d.delta.dx) / u).clamp(0.05, 0.6);
+            card.heightRatio = ((card.height(u) + d.delta.dy) / u).clamp(0.03, 0.6);
           }),
           onPanEnd: (_) => _saveBoard(),
         ),
@@ -3377,8 +3385,9 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                                   selectedIndex == index;
                                               final px = card.x(screenW);
                                               final py = card.y(screenH);
-                                              final pw = card.width(screenW);
-                                              final ph = card.height(screenW);
+                                              final unit = _unit(screenW, screenH);
+                                              final pw = card.width(unit);
+                                              final ph = card.height(unit);
                                               final total = cards.length.clamp(
                                                 1,
                                                 9999,
@@ -3838,20 +3847,22 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         _buildAbCluster(),
         if (!_showQuiz) ...[
           const SizedBox(height: 22),
-          Transform.rotate(
-            angle: -18 * pi / 180,
-            child: PadPillButton(
-              label: _isExporting ? 'SAVING…' : 'MENU',
-              theme: _theme,
-              onTap: () {
-                _buttonBlip();
-                _showMenuSheet();
-              },
-            ),
-          ),
+          _buildMenuPill(),
         ],
       ],
     );
+  }
+
+  Widget _buildMenuPill({bool tilt = true}) {
+    final pill = PadPillButton(
+      label: _isExporting ? 'SAVING…' : 'MENU',
+      theme: _theme,
+      onTap: () {
+        _buttonBlip();
+        _showMenuSheet();
+      },
+    );
+    return tilt ? Transform.rotate(angle: -18 * pi / 180, child: pill) : pill;
   }
 
   // MENU — 큰 타일 6개 (ADD / BG / DIAG / EXPORT / SHARE / RESET)
@@ -3941,19 +3952,25 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     );
   }
 
-  // ★ 가로 화면: [D-PAD] [ 보드 화면 ] [ A·B + 버튼 3×2 ]
-  Widget _buildLandscapeDeck() {
+  // ★ 넓은 화면: 버튼은 항상 보드 아래에 — [D-PAD] [ 무드 + MENU ] [A/B] 한 줄
+  Widget _buildLandscapeControls() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        SizedBox(width: 128, child: Center(child: _build3DDPad())),
-        Expanded(child: _buildBoardScreen()),
-        SizedBox(
-          width: 204,
-          child: Center(
-            child: FittedBox(fit: BoxFit.scaleDown, child: _buildRightDeck()),
+        SizedBox(width: 150, child: Center(child: _build3DDPad())),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildMoodPills(),
+              if (!_showQuiz) ...[
+                const SizedBox(height: 14),
+                _buildMenuPill(tilt: false),
+              ],
+            ],
           ),
         ),
+        SizedBox(width: 150, child: Center(child: _buildAbCluster())),
       ],
     );
   }
@@ -4389,22 +4406,17 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                 : const EdgeInsets.fromLTRB(22, 16, 22, 20),
             child: LayoutBuilder(
               builder: (context, box) {
-                // 가로 화면: D-PAD·버튼을 화면 양옆에 두어 보드 화면을 최대한 크게.
-                // 세로(휴대폰): 화면 아래에 쌓는다.
+                // 버튼은 항상 보드 아래. 넓으면 한 줄, 좁으면(휴대폰 세로) 두 줄로 쌓는다.
                 final landscape =
                     box.maxWidth >= 720 && box.maxWidth >= box.maxHeight * 1.2;
                 return Column(
                   mainAxisSize: MainAxisSize.max,
                   children: [
                     _buildGameHeader(),
-                    Expanded(
-                      child: landscape
-                          ? _buildLandscapeDeck()
-                          : _buildBoardScreen(),
-                    ),
+                    Expanded(child: _buildBoardScreen()),
                     const SizedBox(height: 14),
                     landscape
-                        ? _buildMoodPills()
+                        ? _buildLandscapeControls()
                         : AnimatedSize(
                             duration: const Duration(milliseconds: 250),
                             curve: Curves.easeOut,
