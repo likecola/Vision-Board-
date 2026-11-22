@@ -4781,16 +4781,24 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   }
 
   /// 사진 위에 붙는 장식. [kind] 0 테이프, 1 마스킹테이프, 2 압정, 3 핀, 4 모서리 테이프.
+  /// 크기는 카드 폭에 비례해서 작은 카드(휴대폰)에서도 과하게 커 보이지 않는다.
   List<Widget> _photoDeco(int kind, double w, int seed) {
-    const tacks = [Color(0xFFE05858), Color(0xFF4FA3E0), Color(0xFFF2C94C), Color(0xFF58C27D)];
+    final k = (w / 150).clamp(.7, 1.15);
+    // 압정 색은 무드에 어울리게: 포인트색 / 보조색 / 진주 / 금
+    final tacks = [
+      _theme.accent,
+      _theme.accent2,
+      Color.lerp(Colors.white, _theme.accent, .25)!,
+      const Color(0xFFE7C873),
+    ];
     const washi = [Color(0xFFF7B7C9), Color(0xFFB8E1F0), Color(0xFFFFE08A), Color(0xFFC9E8B8)];
-    Widget tape(double width, double angle, {Color? color}) => Transform.rotate(
+    Widget tape(double width, double angle) => Transform.rotate(
       angle: angle,
       child: Container(
-        width: width,
-        height: 18,
+        width: width * k,
+        height: 13 * k,
         decoration: BoxDecoration(
-          color: (color ?? Colors.white).withOpacity(.58),
+          color: Colors.white.withOpacity(.58),
           boxShadow: const [
             BoxShadow(color: Color(0x33000000), blurRadius: 2, offset: Offset(0, 1)),
           ],
@@ -4802,12 +4810,12 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         final c = washi[seed % washi.length];
         return [
           Positioned(
-            top: -10,
-            left: w / 2 - 34,
+            top: -8 * k,
+            left: w / 2 - 24 * k,
             child: Transform.rotate(
               angle: ((seed % 5) - 2) * .035,
               child: CustomPaint(
-                size: const Size(68, 20),
+                size: Size(48 * k, 15 * k),
                 painter: _WashiTapePainter(c),
               ),
             ),
@@ -4815,47 +4823,48 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         ];
       case 2: // 압정
         final c = tacks[seed % tacks.length];
+        final d = 15 * k;
         return [
           Positioned(
-            top: -9,
-            left: w / 2 - 9,
+            top: -d / 2,
+            left: w / 2 - d / 2,
             child: Container(
-              width: 18,
-              height: 18,
+              width: d,
+              height: d,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   center: const Alignment(-.35, -.4),
-                  colors: [Color.lerp(c, Colors.white, .55)!, c, Color.lerp(c, Colors.black, .35)!],
+                  colors: [Color.lerp(c, Colors.white, .6)!, c, Color.lerp(c, Colors.black, .35)!],
                   stops: const [0, .45, 1],
                 ),
                 boxShadow: const [
-                  BoxShadow(color: Color(0x66000000), blurRadius: 3, offset: Offset(2, 3)),
+                  BoxShadow(color: Color(0x66000000), blurRadius: 3, offset: Offset(1.5, 2.5)),
                 ],
               ),
             ),
           ),
         ];
-      case 3: // 핀(바늘 핀)
+      case 3: // 핀: 광택 구슬 머리 + 짧게 꽂힌 바늘
         final c = tacks[(seed + 1) % tacks.length];
         return [
           Positioned(
-            top: -12,
-            left: w * .5 - 4,
+            top: -11 * k,
+            left: w * .5 - 8 * k,
             child: CustomPaint(
-              size: const Size(30, 30),
-              painter: _NeedlePinPainter(c),
+              size: Size(24 * k, 24 * k),
+              painter: _PearlPinPainter(c),
             ),
           ),
         ];
       case 4: // 모서리 테이프 두 개
         return [
-          Positioned(top: -3, left: -16, child: tape(46, -.72)),
-          Positioned(top: -3, right: -16, child: tape(46, .72)),
+          Positioned(top: -2 * k, left: -10 * k, child: tape(30, -.72)),
+          Positioned(top: -2 * k, right: -10 * k, child: tape(30, .72)),
         ];
       default: // 0: 가운데 테이프
         return [
-          Positioned(top: -9, left: w / 2 - 30, child: tape(60, -.08)),
+          Positioned(top: -7 * k, left: w / 2 - 20 * k, child: tape(40, -.08)),
         ];
     }
   }
@@ -5971,48 +5980,79 @@ class _WashiTapePainter extends CustomPainter {
   bool shouldRepaint(_WashiTapePainter old) => old.color != color;
 }
 
-// 바늘 핀: 둥근 머리 + 비스듬히 꽂힌 은색 바늘
-class _NeedlePinPainter extends CustomPainter {
-  _NeedlePinPainter(this.color);
+// 핀: 광택 있는 구슬 머리 + 짧게 꽂힌 바늘 (24x24 기준으로 그린 뒤 크기에 맞춰 늘린다)
+class _PearlPinPainter extends CustomPainter {
+  _PearlPinPainter(this.color);
   final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
-    const head = Offset(7, 7);
-    const tip = Offset(27, 27);
+    canvas.save();
+    canvas.scale(size.width / 24, size.height / 24);
+    const head = Offset(8, 8);
+    const needleStart = Offset(11.5, 11.5);
+    const needleTip = Offset(20.5, 20.5);
+
+    // 바늘 그림자 + 바늘 (끝으로 갈수록 가늘고 흐려진다)
     canvas.drawLine(
-      head.translate(2, 3),
-      tip.translate(2, 3),
+      needleStart.translate(1.5, 2),
+      needleTip.translate(1.5, 2),
       Paint()
-        ..color = Colors.black.withOpacity(.28)
-        ..strokeWidth = 2.4
+        ..color = Colors.black.withOpacity(.22)
+        ..strokeWidth = 1.8
         ..strokeCap = StrokeCap.round,
     );
     canvas.drawLine(
-      head,
-      tip,
+      needleStart,
+      needleTip,
       Paint()
         ..shader = const LinearGradient(
-          colors: [Color(0xFFF2F2F2), Color(0xFF9A9A9A)],
-        ).createShader(Rect.fromPoints(head, tip))
-        ..strokeWidth = 2.2
+          colors: [Color(0xFFFFFFFF), Color(0xFFB9BDC4)],
+        ).createShader(Rect.fromPoints(needleStart, needleTip))
+        ..strokeWidth = 1.6
         ..strokeCap = StrokeCap.round,
     );
-    canvas.drawCircle(head.translate(1.5, 2.5), 6, Paint()..color = Colors.black.withOpacity(.25));
+
+    // 구슬 머리 그림자
+    canvas.drawCircle(
+      head.translate(1.8, 2.8),
+      6.6,
+      Paint()
+        ..color = Colors.black.withOpacity(.3)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.6),
+    );
+    // 구슬 머리
+    final rect = Rect.fromCircle(center: head, radius: 6.6);
     canvas.drawCircle(
       head,
-      6,
+      6.6,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-.4, -.4),
-          colors: [Color.lerp(color, Colors.white, .6)!, color, Color.lerp(color, Colors.black, .3)!],
+          center: const Alignment(-.45, -.5),
+          radius: 1.0,
+          colors: [
+            Color.lerp(color, Colors.white, .75)!,
+            color,
+            Color.lerp(color, Colors.black, .38)!,
+          ],
           stops: const [0, .5, 1],
-        ).createShader(Rect.fromCircle(center: head, radius: 6)),
+        ).createShader(rect),
     );
+    // 가장자리 테두리 + 반짝이는 하이라이트
+    canvas.drawCircle(
+      head,
+      6.6,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = .7
+        ..color = Color.lerp(color, Colors.black, .5)!.withOpacity(.55),
+    );
+    canvas.drawCircle(head.translate(-2.2, -2.4), 1.7, Paint()..color = Colors.white.withOpacity(.85));
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_NeedlePinPainter old) => old.color != color;
+  bool shouldRepaint(_PearlPinPainter old) => old.color != color;
 }
 
 // ★ 플레이스홀더 타일의 대각선 스트라이프 (HTML repeating-linear-gradient 대응)
