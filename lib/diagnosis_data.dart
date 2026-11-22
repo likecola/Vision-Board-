@@ -73,7 +73,7 @@ const diagMoods = <String, DiagMood>{
   ),
   'wanderlust': DiagMood(
     emoji: '🌍',
-    titleKo: '방랑벽',
+    titleKo: '노마드',
     titleEn: 'WANDERLUST',
     descKo: '집은 계속 움직이는 목적지예요.\n수평선이 부르는 사람.',
     descEn: 'Home is a moving target.\nThe horizon keeps calling you.',

@@ -316,7 +316,7 @@ class BoardCard {
   CardStyle style;
   int paperColor, textColor;
 
-  /// 사진 프레임: 0 폴라로이드+테이프, 1 폴라로이드+핀, 2 깔끔한 둥근 프레임
+  /// 사진 프레임: 0 테이프, 1 마스킹테이프, 2 압정, 3 핀, 4 모서리 테이프 (모두 폴라로이드), 5 깔끔한 둥근 프레임
   int frame;
 
   // base64를 한 번만 풀어 같은 바이트 배열을 재사용한다. 화면이 갱신될 때마다 새로
@@ -366,6 +366,7 @@ class BoardCard {
     'paperColor': paperColor,
     'textColor': textColor,
     'frame': frame,
+    'frameV': 2,
   };
 
   factory BoardCard.fromJson(Map<String, dynamic> json) {
@@ -385,7 +386,14 @@ class BoardCard {
           : CardStyle.torn,
       paperColor: json['paperColor'] ?? 0xFFF5F0E8,
       textColor: json['textColor'] ?? 0xFF1a1a1a,
-      frame: json['frame'] ?? 0,
+      // 옛 저장본(frameV 없음): 0 테이프, 1 핀, 2 깔끔 → 새 번호로 변환
+      frame: json['frameV'] == 2
+          ? (json['frame'] ?? 0)
+          : switch (json['frame'] ?? 0) {
+              1 => 2,
+              2 => 5,
+              _ => 0,
+            },
     );
   }
 }
@@ -2672,6 +2680,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
             widthRatio: wPx / u,
             heightRatio: hPx / u,
             rotation: jit(.4),
+            frame: rng.nextInt(5), // 장식을 카드마다 다르게
           ),
         );
       }
@@ -2781,7 +2790,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           widthRatio: wPx / u,
           heightRatio: hPx / u,
           rotation: (rng.nextDouble() - .5) * .2,
-          frame: rng.nextBool() ? 0 : 1,
+          frame: rng.nextInt(5),
         ),
       );
       _floatOffsets.add(rng.nextDouble() * pi * 2);
@@ -2809,7 +2818,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 
   void _cycleFrame(int index) {
     if (index < 0 || index >= cards.length) return;
-    setState(() => cards[index].frame = (cards[index].frame + 1) % 3);
+    setState(() => cards[index].frame = (cards[index].frame + 1) % 6);
     _saveBoard();
   }
 
@@ -4697,7 +4706,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     }
 
     // 프레임 2: 깔끔한 둥근 프레임 (캡션 없음)
-    if (card.frame == 2) {
+    if (card.frame == 5) {
       return Container(
         width: w,
         height: h + 24,
@@ -4719,7 +4728,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       );
     }
 
-    // 프레임 0/1: 폴라로이드 + 테이프 또는 핀
+    // 프레임 0~4: 폴라로이드 + 장식(테이프, 마스킹테이프, 압정, 핀, 모서리 테이프)
     final polaroid = Container(
       width: w,
       height: h + 24,
@@ -4766,43 +4775,89 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         ],
       ),
     );
-    final deco = card.frame == 1
-        ? Positioned(
-            top: -7,
-            left: w / 2 - 7,
+    final seed = (card.imageUrl ?? card.imageBase64?.substring(0, 24) ?? '').hashCode.abs();
+    final deco = _photoDeco(card.frame, w, seed);
+    return Stack(clipBehavior: Clip.none, children: [polaroid, ...deco]);
+  }
+
+  /// 사진 위에 붙는 장식. [kind] 0 테이프, 1 마스킹테이프, 2 압정, 3 핀, 4 모서리 테이프.
+  List<Widget> _photoDeco(int kind, double w, int seed) {
+    const tacks = [Color(0xFFE05858), Color(0xFF4FA3E0), Color(0xFFF2C94C), Color(0xFF58C27D)];
+    const washi = [Color(0xFFF7B7C9), Color(0xFFB8E1F0), Color(0xFFFFE08A), Color(0xFFC9E8B8)];
+    Widget tape(double width, double angle, {Color? color}) => Transform.rotate(
+      angle: angle,
+      child: Container(
+        width: width,
+        height: 18,
+        decoration: BoxDecoration(
+          color: (color ?? Colors.white).withOpacity(.58),
+          boxShadow: const [
+            BoxShadow(color: Color(0x33000000), blurRadius: 2, offset: Offset(0, 1)),
+          ],
+        ),
+      ),
+    );
+    switch (kind) {
+      case 1: // 마스킹테이프: 파스텔 줄무늬
+        final c = washi[seed % washi.length];
+        return [
+          Positioned(
+            top: -10,
+            left: w / 2 - 34,
+            child: Transform.rotate(
+              angle: ((seed % 5) - 2) * .035,
+              child: CustomPaint(
+                size: const Size(68, 20),
+                painter: _WashiTapePainter(c),
+              ),
+            ),
+          ),
+        ];
+      case 2: // 압정
+        final c = tacks[seed % tacks.length];
+        return [
+          Positioned(
+            top: -9,
+            left: w / 2 - 9,
             child: Container(
-              width: 14,
-              height: 14,
+              width: 18,
+              height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  center: const Alignment(-.3, -.3),
-                  colors: [Colors.white, _theme.accent],
+                  center: const Alignment(-.35, -.4),
+                  colors: [Color.lerp(c, Colors.white, .55)!, c, Color.lerp(c, Colors.black, .35)!],
+                  stops: const [0, .45, 1],
                 ),
                 boxShadow: const [
-                  BoxShadow(color: Color(0x80000000), blurRadius: 3, offset: Offset(0, 2)),
+                  BoxShadow(color: Color(0x66000000), blurRadius: 3, offset: Offset(2, 3)),
                 ],
               ),
             ),
-          )
-        : Positioned(
-            top: -9,
-            left: w / 2 - 30,
-            child: Transform.rotate(
-              angle: -.08,
-              child: Container(
-                width: 60,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.55),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x33000000), blurRadius: 2, offset: Offset(0, 1)),
-                  ],
-                ),
-              ),
+          ),
+        ];
+      case 3: // 핀(바늘 핀)
+        final c = tacks[(seed + 1) % tacks.length];
+        return [
+          Positioned(
+            top: -12,
+            left: w * .5 - 4,
+            child: CustomPaint(
+              size: const Size(30, 30),
+              painter: _NeedlePinPainter(c),
             ),
-          );
-    return Stack(clipBehavior: Clip.none, children: [polaroid, deco]);
+          ),
+        ];
+      case 4: // 모서리 테이프 두 개
+        return [
+          Positioned(top: -3, left: -16, child: tape(46, -.72)),
+          Positioned(top: -3, right: -16, child: tape(46, .72)),
+        ];
+      default: // 0: 가운데 테이프
+        return [
+          Positioned(top: -9, left: w / 2 - 30, child: tape(60, -.08)),
+        ];
+    }
   }
 
   // ★ 에셋 없는 환경용 플레이스홀더 타일 (Claude Design HTML의 cardTile 스타일)
@@ -5883,6 +5938,83 @@ class _VisionBoardPageState extends State<VisionBoardPage>
 }
 
 // ★ 무드 전환 시 카트리지 교체 느낌 - 암전 + 스캔라인
+// 마스킹테이프: 파스텔 바탕 + 대각선 줄무늬, 양 끝은 살짝 톱니
+class _WashiTapePainter extends CustomPainter {
+  _WashiTapePainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()..moveTo(0, 0);
+    const teeth = 5;
+    final dy = size.height / teeth;
+    for (var i = 0; i < teeth; i++) {
+      path.lineTo(i.isEven ? 2.5 : 0, dy * (i + 1));
+    }
+    path.lineTo(size.width, size.height);
+    for (var i = teeth; i > 0; i--) {
+      path.lineTo(i.isEven ? size.width : size.width - 2.5, dy * (i - 1));
+    }
+    path.close();
+    canvas.drawShadow(path, Colors.black.withOpacity(.4), 1.5, false);
+    canvas.drawPath(path, Paint()..color = color.withOpacity(.9));
+    canvas.save();
+    canvas.clipPath(path);
+    final stripe = Paint()..color = Colors.white.withOpacity(.45)..strokeWidth = 3;
+    for (double x = -size.height; x < size.width + size.height; x += 9) {
+      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), stripe);
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_WashiTapePainter old) => old.color != color;
+}
+
+// 바늘 핀: 둥근 머리 + 비스듬히 꽂힌 은색 바늘
+class _NeedlePinPainter extends CustomPainter {
+  _NeedlePinPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const head = Offset(7, 7);
+    const tip = Offset(27, 27);
+    canvas.drawLine(
+      head.translate(2, 3),
+      tip.translate(2, 3),
+      Paint()
+        ..color = Colors.black.withOpacity(.28)
+        ..strokeWidth = 2.4
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawLine(
+      head,
+      tip,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFFF2F2F2), Color(0xFF9A9A9A)],
+        ).createShader(Rect.fromPoints(head, tip))
+        ..strokeWidth = 2.2
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawCircle(head.translate(1.5, 2.5), 6, Paint()..color = Colors.black.withOpacity(.25));
+    canvas.drawCircle(
+      head,
+      6,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-.4, -.4),
+          colors: [Color.lerp(color, Colors.white, .6)!, color, Color.lerp(color, Colors.black, .3)!],
+          stops: const [0, .5, 1],
+        ).createShader(Rect.fromCircle(center: head, radius: 6)),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_NeedlePinPainter old) => old.color != color;
+}
+
 // ★ 플레이스홀더 타일의 대각선 스트라이프 (HTML repeating-linear-gradient 대응)
 class _StripeTilePainter extends CustomPainter {
   final Color color;
