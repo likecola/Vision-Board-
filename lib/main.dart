@@ -4845,15 +4845,32 @@ class _VisionBoardPageState extends State<VisionBoardPage>
             ),
           ),
         ];
-      case 3: // 핀: 광택 구슬 머리 + 짧게 꽂힌 바늘
-        final c = tacks[(seed + 1) % tacks.length];
+      case 3: // 핀: 무드마다 다른 모양 (별 / 꽃 / 금색 클립 / 네온 칩 / 위치 핀)
+        final pk = k * 1.35; // 핀은 테이프보다 존재감 있게
+        double top, left;
+        switch (_currentMood) {
+          case 'wanderlust': // 위치 핀은 뾰족한 끝이 카드 윗변에 닿게
+            top = -25 * pk;
+            left = w / 2 - 12 * pk;
+          case 'that_girl': // 클립은 윗변 왼쪽에 걸친다
+            top = -14 * pk;
+            left = w * .16;
+          default:
+            top = -12 * pk;
+            left = w / 2 - 12 * pk;
+        }
         return [
           Positioned(
-            top: -11 * k,
-            left: w * .5 - 8 * k,
+            top: top,
+            left: left,
             child: CustomPaint(
-              size: Size(24 * k, 24 * k),
-              painter: _PearlPinPainter(c),
+              size: Size(24 * pk, 28 * pk),
+              painter: _MoodPinPainter(
+                mood: _currentMood,
+                c1: _theme.accent,
+                c2: _theme.accent2,
+                seed: seed,
+              ),
             ),
           ),
         ];
@@ -5980,79 +5997,235 @@ class _WashiTapePainter extends CustomPainter {
   bool shouldRepaint(_WashiTapePainter old) => old.color != color;
 }
 
-// 핀: 광택 있는 구슬 머리 + 짧게 꽂힌 바늘 (24x24 기준으로 그린 뒤 크기에 맞춰 늘린다)
-class _PearlPinPainter extends CustomPainter {
-  _PearlPinPainter(this.color);
-  final Color color;
+// 무드별 핀 (24x28 기준으로 그린 뒤 크기에 맞춰 늘린다)
+//  manifestation: 금색 별 / soft_life: 꽃 / that_girl: 금색 클립
+//  cyber_dream: 네온 칩 / wanderlust: 위치(지도) 핀
+class _MoodPinPainter extends CustomPainter {
+  _MoodPinPainter({
+    required this.mood,
+    required this.c1,
+    required this.c2,
+    required this.seed,
+  });
+  final String mood;
+  final Color c1, c2;
+  final int seed;
+
+  static Path _star(Offset c, double ro, double ri, {int n = 5}) {
+    final p = Path();
+    for (var i = 0; i < n * 2; i++) {
+      final r = i.isEven ? ro : ri;
+      final a = -pi / 2 + i * pi / n;
+      final pt = c + Offset(cos(a) * r, sin(a) * r);
+      i == 0 ? p.moveTo(pt.dx, pt.dy) : p.lineTo(pt.dx, pt.dy);
+    }
+    return p..close();
+  }
+
+  void _soft(Canvas canvas, Path path, {Offset shift = const Offset(1.5, 2.5), double a = .3}) {
+    canvas.drawPath(
+      path.shift(shift),
+      Paint()
+        ..color = Colors.black.withOpacity(a)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.4),
+    );
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
-    canvas.scale(size.width / 24, size.height / 24);
-    const head = Offset(8, 8);
-    const needleStart = Offset(11.5, 11.5);
-    const needleTip = Offset(20.5, 20.5);
-
-    // 바늘 그림자 + 바늘 (끝으로 갈수록 가늘고 흐려진다)
-    canvas.drawLine(
-      needleStart.translate(1.5, 2),
-      needleTip.translate(1.5, 2),
-      Paint()
-        ..color = Colors.black.withOpacity(.22)
-        ..strokeWidth = 1.8
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.drawLine(
-      needleStart,
-      needleTip,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0xFFFFFFFF), Color(0xFFB9BDC4)],
-        ).createShader(Rect.fromPoints(needleStart, needleTip))
-        ..strokeWidth = 1.6
-        ..strokeCap = StrokeCap.round,
-    );
-
-    // 구슬 머리 그림자
-    canvas.drawCircle(
-      head.translate(1.8, 2.8),
-      6.6,
-      Paint()
-        ..color = Colors.black.withOpacity(.3)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.6),
-    );
-    // 구슬 머리
-    final rect = Rect.fromCircle(center: head, radius: 6.6);
-    canvas.drawCircle(
-      head,
-      6.6,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(-.45, -.5),
-          radius: 1.0,
-          colors: [
-            Color.lerp(color, Colors.white, .75)!,
-            color,
-            Color.lerp(color, Colors.black, .38)!,
-          ],
-          stops: const [0, .5, 1],
-        ).createShader(rect),
-    );
-    // 가장자리 테두리 + 반짝이는 하이라이트
-    canvas.drawCircle(
-      head,
-      6.6,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = .7
-        ..color = Color.lerp(color, Colors.black, .5)!.withOpacity(.55),
-    );
-    canvas.drawCircle(head.translate(-2.2, -2.4), 1.7, Paint()..color = Colors.white.withOpacity(.85));
+    canvas.scale(size.width / 24, size.height / 28);
+    switch (mood) {
+      case 'manifestation':
+        _paintStar(canvas);
+      case 'soft_life':
+        _paintFlower(canvas);
+      case 'that_girl':
+        _paintClip(canvas);
+      case 'cyber_dream':
+        _paintChip(canvas);
+      default:
+        _paintMapPin(canvas);
+    }
     canvas.restore();
   }
 
+  void _paintStar(Canvas canvas) {
+    const c = Offset(12, 12);
+    final star = _star(c, 10, 4.6);
+    _soft(canvas, star);
+    final rect = Rect.fromCircle(center: c, radius: 10);
+    canvas.drawPath(
+      star,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFF3B0), Color(0xFFFFC93C), Color(0xFFE09A1A)],
+        ).createShader(rect),
+    );
+    canvas.drawPath(
+      star,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = .7
+        ..strokeJoin = StrokeJoin.round
+        ..color = const Color(0xFFB97A10).withOpacity(.7),
+    );
+    canvas.drawCircle(const Offset(10.2, 9.6), 1.3, Paint()..color = Colors.white.withOpacity(.85));
+    // 작은 반짝임 (무드 보조색)
+    final sp = _star(const Offset(20, 4.5), 3, 1, n: 4);
+    canvas.drawPath(sp, Paint()..color = Color.lerp(c2, Colors.white, .5)!);
+  }
+
+  void _paintFlower(Canvas canvas) {
+    const c = Offset(12, 12);
+    const petals = [Color(0xFFFFF6EA), Color(0xFFFADBC9), Color(0xFFF6C8CF)];
+    final petal = petals[seed % petals.length];
+    final shadow = Path();
+    final tips = <Offset>[];
+    for (var i = 0; i < 5; i++) {
+      final a = -pi / 2 + i * 2 * pi / 5;
+      final pc = c + Offset(cos(a) * 5.2, sin(a) * 5.2);
+      tips.add(pc);
+      shadow.addOval(Rect.fromCircle(center: pc, radius: 4.5));
+    }
+    _soft(canvas, shadow, shift: const Offset(1.2, 2), a: .25);
+    for (final pc in tips) {
+      canvas.drawCircle(pc, 4.5, Paint()..color = petal);
+      canvas.drawCircle(
+        pc,
+        4.5,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = .5
+          ..color = c1.withOpacity(.35),
+      );
+    }
+    final core = Rect.fromCircle(center: c, radius: 3.4);
+    canvas.drawCircle(
+      c,
+      3.4,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(-.4, -.4),
+          colors: [Color(0xFFFFE3A3), Color(0xFFE8A85C), Color(0xFFC9803A)],
+        ).createShader(core),
+    );
+    canvas.drawCircle(const Offset(11, 10.9), .9, Paint()..color = Colors.white.withOpacity(.8));
+  }
+
+  void _paintClip(Canvas canvas) {
+    canvas.translate(12, 14);
+    canvas.rotate(.25);
+    canvas.translate(-12, -14);
+    final path = Path()
+      ..moveTo(8, 23)
+      ..lineTo(8, 8)
+      ..arcToPoint(const Offset(16, 8), radius: const Radius.circular(4), clockwise: true)
+      ..lineTo(16, 20)
+      ..arcToPoint(const Offset(11, 20), radius: const Radius.circular(2.5), clockwise: true)
+      ..lineTo(11, 11);
+    canvas.drawPath(
+      path.shift(const Offset(1.3, 2)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = Colors.black.withOpacity(.25),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.7
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color.lerp(c1, Colors.white, .55)!, c1, Color.lerp(c1, Colors.black, .3)!],
+        ).createShader(const Rect.fromLTWH(7, 4, 10, 20)),
+    );
+  }
+
+  void _paintChip(Canvas canvas) {
+    const c = Offset(12, 12);
+    // 네온 번짐
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: c, width: 16, height: 16), const Radius.circular(4)),
+      Paint()
+        ..color = c1.withOpacity(.55)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.2),
+    );
+    final body = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: c, width: 12, height: 12),
+      const Radius.circular(2.4),
+    );
+    canvas.drawRRect(
+      body,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF12356E), Color(0xFF040E26)],
+        ).createShader(body.outerRect),
+    );
+    canvas.drawRRect(
+      body,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.1
+        ..color = c1,
+    );
+    // 중앙 코어 + 모서리 픽셀(보조색)
+    canvas.drawRect(
+      Rect.fromCenter(center: c, width: 5, height: 5),
+      Paint()..color = c1,
+    );
+    canvas.drawRect(
+      Rect.fromCenter(center: c, width: 2, height: 2),
+      Paint()..color = Colors.white.withOpacity(.9),
+    );
+    canvas.drawRect(const Rect.fromLTWH(15.4, 6, 1.8, 1.8), Paint()..color = c2);
+  }
+
+  void _paintMapPin(Canvas canvas) {
+    final pin = Path()
+      ..moveTo(12, 26)
+      ..cubicTo(5.2, 18.6, 5.2, 14.5, 5.2, 9.5)
+      ..arcToPoint(const Offset(18.8, 9.5), radius: const Radius.circular(6.8), clockwise: true)
+      ..cubicTo(18.8, 14.5, 18.8, 18.6, 12, 26)
+      ..close();
+    _soft(canvas, pin);
+    canvas.drawPath(
+      pin,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color.lerp(c1, Colors.white, .45)!, c1, Color.lerp(c1, Colors.black, .35)!],
+        ).createShader(const Rect.fromLTWH(5, 2, 14, 24)),
+    );
+    canvas.drawPath(
+      pin,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = .7
+        ..color = Color.lerp(c1, Colors.black, .5)!.withOpacity(.6),
+    );
+    canvas.drawCircle(const Offset(12, 9.5), 2.9, Paint()..color = Colors.white.withOpacity(.95));
+    canvas.drawCircle(const Offset(12, 9.5), 2.9, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = .6
+      ..color = Color.lerp(c1, Colors.black, .4)!.withOpacity(.5));
+    canvas.drawCircle(const Offset(8.8, 6.2), 1.1, Paint()..color = Colors.white.withOpacity(.5));
+  }
+
   @override
-  bool shouldRepaint(_PearlPinPainter old) => old.color != color;
+  bool shouldRepaint(_MoodPinPainter old) =>
+      old.mood != mood || old.c1 != c1 || old.c2 != c2 || old.seed != seed;
 }
 
 // ★ 플레이스홀더 타일의 대각선 스트라이프 (HTML repeating-linear-gradient 대응)
