@@ -4783,7 +4783,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   /// 사진 위에 붙는 장식. [kind] 0 테이프, 1 마스킹테이프, 2 압정, 3 핀, 4 모서리 테이프.
   /// 크기는 카드 폭에 비례해서 작은 카드(휴대폰)에서도 과하게 커 보이지 않는다.
   List<Widget> _photoDeco(int kind, double w, int seed) {
-    final k = (w / 150).clamp(.7, 1.15);
+    final k = (w / 150).clamp(.7, 1.15); // 테이프류
+    final kp = (w / 150).clamp(1.0, 1.2); // 핀·압정은 작은 카드(휴대폰)에서도 줄이지 않는다
     // 압정 색은 무드에 어울리게: 포인트색 / 보조색 / 진주 / 금
     final tacks = [
       _theme.accent,
@@ -4823,30 +4824,16 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         ];
       case 2: // 압정
         final c = tacks[seed % tacks.length];
-        final d = 15 * k;
+        final d = 22 * kp;
         return [
           Positioned(
-            top: -d / 2,
+            top: -d / 2 + 3 * kp,
             left: w / 2 - d / 2,
-            child: Container(
-              width: d,
-              height: d,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  center: const Alignment(-.35, -.4),
-                  colors: [Color.lerp(c, Colors.white, .6)!, c, Color.lerp(c, Colors.black, .35)!],
-                  stops: const [0, .45, 1],
-                ),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x66000000), blurRadius: 3, offset: Offset(1.5, 2.5)),
-                ],
-              ),
-            ),
+            child: CustomPaint(size: Size(d, d), painter: _TackPainter(c)),
           ),
         ];
       case 3: // 핀: 무드마다 다른 모양 (별 / 꽃 / 금색 클립 / 네온 칩 / 위치 핀)
-        final pk = k * 1.35; // 핀은 테이프보다 존재감 있게
+        final pk = kp * 1.3; // 핀은 테이프보다 존재감 있게
         double top, left;
         switch (_currentMood) {
           case 'wanderlust': // 위치 핀은 뾰족한 끝이 카드 윗변에 닿게
@@ -5997,6 +5984,55 @@ class _WashiTapePainter extends CustomPainter {
   bool shouldRepaint(_WashiTapePainter old) => old.color != color;
 }
 
+// 압정: 위에서 본 모습 — 바닥 링 + 볼록한 머리 + 반짝임 (22x22 기준)
+class _TackPainter extends CustomPainter {
+  _TackPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 22);
+    const c = Offset(11, 10);
+    // 그림자
+    canvas.drawCircle(
+      c.translate(2.2, 3.4),
+      8.4,
+      Paint()
+        ..color = Colors.black.withOpacity(kLite ? .32 : .3)
+        ..maskFilter = kLite ? null : const MaskFilter.blur(BlurStyle.normal, 1.8),
+    );
+    // 바닥 링(어두운 가장자리)
+    canvas.drawCircle(c, 8.6, Paint()..color = Color.lerp(color, Colors.black, .45)!);
+    // 볼록한 머리
+    final dome = Rect.fromCircle(center: c.translate(-.3, -.5), radius: 7.4);
+    canvas.drawCircle(
+      c.translate(-.3, -.5),
+      7.4,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-.45, -.5),
+          radius: 1.05,
+          colors: [
+            Color.lerp(color, Colors.white, .7)!,
+            color,
+            Color.lerp(color, Colors.black, .28)!,
+          ],
+          stops: const [0, .5, 1],
+        ).createShader(dome),
+    );
+    // 반짝임
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(7.6, 6.2), width: 4.2, height: 2.6),
+      Paint()..color = Colors.white.withOpacity(.8),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_TackPainter old) => old.color != color;
+}
+
 // 무드별 핀 (24x28 기준으로 그린 뒤 크기에 맞춰 늘린다)
 //  manifestation: 금색 별 / soft_life: 꽃 / that_girl: 금색 클립
 //  cyber_dream: 네온 칩 / wanderlust: 위치(지도) 핀
@@ -6027,7 +6063,7 @@ class _MoodPinPainter extends CustomPainter {
       path.shift(shift),
       Paint()
         ..color = Colors.black.withOpacity(a)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.4),
+        ..maskFilter = kLite ? null : const MaskFilter.blur(BlurStyle.normal, 1.4),
     );
   }
 
