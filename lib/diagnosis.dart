@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'diagnosis_data.dart';
 import 'intro.dart' show Mascot;
+import 'fonts.dart';
 import 'web_synth.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -41,6 +42,7 @@ const _bubbleBg = Color(0xFFFFF6E0);
 
 TextStyle _jua(double size, Color color, {double height = 1.25}) => TextStyle(
   fontFamily: 'Jua',
+  fontFamilyFallback: const [kFullJuaFamily],
   fontSize: size,
   color: color,
   height: height,
@@ -650,7 +652,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen>
     final order = picks.indexOf(i) + 1;
     final focused = _cursorOn && _cursor == i;
     final tilt = (((i * 37 + _round * 11) % 5) - 2) * .006;
-    final pm = widget.paletteOf(c.mood);
     return KeyedSubtree(
       key: _cardKeys[i],
       child: Semantics(
@@ -664,7 +665,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
               width: w,
-              constraints: BoxConstraints(minHeight: wide ? 132 : 112),
+              constraints: BoxConstraints(minHeight: wide ? 120 : 104),
               padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
               transformAlignment: Alignment.center,
               transform: Matrix4.identity()
@@ -688,16 +689,11 @@ class _DiagnosisScreenState extends State<DiagnosisScreen>
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: wide ? 54 : 46,
-                        height: wide ? 54 : 46,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: pm.accent.withValues(alpha: .16),
-                          border: Border.all(color: pm.accent.withValues(alpha: .55)),
-                        ),
-                        child: Text(c.emoji, style: TextStyle(fontSize: wide ? 28 : 24, decoration: TextDecoration.none)),
+                      // 모든 카드가 같은 모양: 어떤 무드인지 짐작되지 않게 아이콘 대신 작은 별만 둔다.
+                      Icon(
+                        Icons.auto_awesome,
+                        size: wide ? 20 : 17,
+                        color: (selected ? p.accent : p.muted).withValues(alpha: .7),
                       ),
                       const SizedBox(height: 10),
                       Text(

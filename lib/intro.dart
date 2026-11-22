@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'build_info.dart';
+import 'fonts.dart';
 import 'web_synth.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -55,6 +56,7 @@ TextStyle _vt(double size, Color color, {double height = 1.1}) => TextStyle(
 
 TextStyle _jua(double size, Color color, {double height = 1.2}) => TextStyle(
   fontFamily: 'Jua',
+  fontFamilyFallback: const [kFullJuaFamily],
   fontSize: size,
   color: color,
   height: height,
@@ -545,12 +547,12 @@ class _IntroOverlayState extends State<IntroOverlay>
           colors: [Color(0xFF4E2F86), Color(0xFF3A2566), Color(0xFF1D1138)],
           stops: [0, 0.14, 1],
         ),
-        boxShadow: const [
-          BoxShadow(color: Color(0x1AFFFFFF), offset: Offset(0, 2)),
+        boxShadow: [
+          const BoxShadow(color: Color(0x1AFFFFFF), offset: Offset(0, 2)),
           BoxShadow(
-            color: Color(0x8C000000),
-            offset: Offset(0, 40),
-            blurRadius: 80,
+            color: const Color(0x8C000000),
+            offset: const Offset(0, 40),
+            blurRadius: kLite ? 26 : 80,
           ),
         ],
       ),

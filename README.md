@@ -63,6 +63,13 @@ Built as a side project to learn Flutter, coming from a Python/AI background.
 - Google Fonts (Playfair Display, Dancing Script)
 - Single screen — no scrolling
 
+### Photos & touch editing
+- Sample frames show a **+**; tap it (or use the *change photo* handle on a selected card) to put your own photo in. `MENU > ADD` places a new photo in the middle of the board
+- Photos are resized to a 1280px JPEG in the browser before saving, so they stay small enough for local storage and phones
+- Three frames, switched with the frame handle: polaroid + tape, polaroid + pin, clean rounded frame
+- Phones: drag with one finger, **pinch to resize and twist to rotate** with two; the selected card shows larger handles. Text cards have an edit handle (no double-tap needed)
+- On phones a lighter mode stops continuously animating effects and trims big blur shadows
+
 ### Mood System
 - 5 themes: ✨ Manifestation, 🌿 Soft Life, 💪 That Girl, 🌀 Cyber Dream, 🌍 Wanderlust
 - Each mood applies images, text cards, colors, console skin, particles, and background in one tap

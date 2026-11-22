@@ -97,30 +97,32 @@ class DiagRound {
 }
 
 /// 3라운드 × 6장 중 2장. 라운드마다 5개 무드가 하나씩 + 보너스 1장.
+/// 카드는 모두 "꿈"에 관한 자연스러운 장면이고, 어떤 무드인지는 드러나지 않게 쓴다
+/// (이모지·키워드로 결과가 짐작되지 않도록 카드에는 아이콘을 두지 않는다).
 const diagRounds = <DiagRound>[
-  DiagRound('아침에 눈을 떴을 때, 끌리는 장면은?', 'Waking up — which scene pulls you?', [
-    DiagCard('manifestation', '✨', '무대 위 조명이 나를 비추는 아침', 'Stage lights find me'),
-    DiagCard('soft_life', '🌿', '느지막이 일어나 햇살과 따뜻한 차', 'Slow morning, sunlight & warm tea'),
-    DiagCard('that_girl', '💪', '새벽 5시, 러닝은 이미 끝!', '5 A.M. run: already done'),
-    DiagCard('cyber_dream', '🌀', '터미널 커서만 깜빡이는 새벽, 빌드는 이미 돌아가는 중', 'Dawn, only the terminal cursor blinking — the build is already running'),
-    DiagCard('wanderlust', '🌍', '낯선 도시로 향하는 아침 기차', 'Morning train to somewhere new'),
-    DiagCard('cyber_dream', '🌀', '홀로그램 UI가 오늘 일정을 읽어주는 미래의 아침', 'A future morning: a holographic UI reads out your day'),
+  DiagRound('꿈에서 깨어나기 직전, 가장 선명하게 남은 장면은?', 'Right before waking from a dream, which scene stayed clearest?', [
+    DiagCard('manifestation', '', '수많은 박수 속에서 내 이름이 불리던 순간', 'My name being called out amid huge applause'),
+    DiagCard('soft_life', '', '일출을 바라보며 따뜻한 커피를 마시던 아침', 'Sipping warm coffee while watching the sunrise'),
+    DiagCard('that_girl', '', '새벽 공기를 가르며 달리다 결승선을 넘던 순간', 'Crossing the finish line after running through the dawn air'),
+    DiagCard('cyber_dream', '', '빛나는 밤하늘 도시 위를 날아다니던 장면', 'Flying over a glowing city under the night sky'),
+    DiagCard('wanderlust', '', '지도 없이 낯선 도시의 골목을 걷던 장면', 'Wandering the alleys of a strange city without a map'),
+    DiagCard('cyber_dream', '', '우주선 창밖으로 지구가 작아지던 장면', 'Watching Earth shrink in the window of a spaceship'),
   ]),
-  DiagRound('나를 가장 잘 설명하는 한마디는?', 'Which line describes you best?', [
-    DiagCard('manifestation', '✨', '원하는 건 말하는 순간 시작돼', 'Say it and it begins'),
-    DiagCard('soft_life', '🌿', '쉬는 것도 일의 일부야', 'Rest is productive'),
-    DiagCard('that_girl', '💪', '오늘 할 일은 오늘 끝낸다', "Today's list, done today"),
-    DiagCard('cyber_dream', '🌀', '막힌 시스템은 해킹해서 내 방식으로 다시 짠다', 'A locked system? Hack it and rebuild it my way'),
-    DiagCard('wanderlust', '🌍', '정해진 주소 없이 흘러가도 괜찮아', 'No fixed address, just drift'),
-    DiagCard('soft_life', '🌿', '좋아하는 것들로 하루를 채워', 'Fill the day with what I love'),
+  DiagRound('그 꿈을 향해 가는 나는, 어떤 모습일까?', 'On the way to that dream, what am I like?', [
+    DiagCard('manifestation', '', '이미 이룬 사람처럼 당당하게 말하고 다녀', 'I talk with confidence, as if it were already mine'),
+    DiagCard('soft_life', '', '서두르지 않고 하루하루 나답게 쌓아가', 'No rush — I build it day by day, my own way'),
+    DiagCard('that_girl', '', '정해둔 만큼은 매일, 하루도 빼먹지 않고 해내', 'I do my set amount every day without skipping one'),
+    DiagCard('cyber_dream', '', '아무도 안 해본 방식으로 새롭게 만들어봐', 'I try it a way nobody has, and make something new'),
+    DiagCard('wanderlust', '', '한곳에 머물지 않고 여기저기서 영감을 모아', "I never stay in one place; I gather inspiration everywhere"),
+    DiagCard('soft_life', '', '좋아하는 것들에 둘러싸여 천천히 가고 싶어', 'I want to go slowly, surrounded by the things I love'),
   ]),
-  DiagRound('꿈이 이뤄진 날, 내 곁에 있는 건?', 'The day it all comes true, what is beside you?', [
-    DiagCard('manifestation', '✨', '반짝이는 트로피와 샴페인', 'A trophy and champagne'),
-    DiagCard('soft_life', '🌿', '린넨 이불과 갓 구운 빵', 'Linen sheets & fresh bread'),
-    DiagCard('that_girl', '💪', '깔끔한 책상과 갓 내린 에스프레소', 'A clean desk & fresh espresso'),
-    DiagCard('cyber_dream', '🌀', '홀로그램 UI가 반응하는 미래형 관제 시스템', 'A future control system with a holographic UI'),
-    DiagCard('wanderlust', '🌍', '낡은 지도와 도장 가득한 여권', 'An old map & a stamped passport'),
-    DiagCard('that_girl', '💪', '체크리스트가 전부 지워진 노트', 'A notebook with every box checked'),
+  DiagRound('꿈이 이뤄진 날, 나는 어디서 눈을 뜰까?', 'On the day your dream comes true, where do you wake up?', [
+    DiagCard('manifestation', '', '통유리창 너머로 도시가 내려다보이는 높은 집', 'A high apartment overlooking the city through floor-to-ceiling glass'),
+    DiagCard('soft_life', '', '햇살 가득한 창가, 갓 구운 빵 냄새가 나는 집', 'A sunlit window and the smell of freshly baked bread'),
+    DiagCard('that_girl', '', '깔끔하게 정돈된 방, 이미 하루 계획이 끝난 아침', 'A tidy room, and a morning where the day is already planned'),
+    DiagCard('cyber_dream', '', '벽 전체가 화면이 되어 세상과 이어지는 집', 'A home whose whole wall is a screen linked to the world'),
+    DiagCard('wanderlust', '', '바다가 보이는 낯선 나라의 작은 방', 'A small room in a foreign country with a view of the sea'),
+    DiagCard('that_girl', '', '해야 할 일을 모두 끝내고 맞이한 느긋한 아침', 'A relaxed morning after finishing everything on the list'),
   ]),
 ];
 

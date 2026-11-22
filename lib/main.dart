@@ -15,6 +15,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'diagnosis.dart';
 import 'build_info.dart';
 import 'diagnosis_data.dart';
+import 'fonts.dart';
 import 'intro.dart';
 import 'web_synth.dart';
 
@@ -38,6 +39,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),
+        // 번들 폰트에 없는 한글은 Jua 전체 글꼴(내려받음)로 채운다.
+        fontFamilyFallback: const [kFullJuaFamily],
       ),
       home: const IntroGate(),
     );
@@ -73,6 +76,7 @@ class _IntroGateState extends State<IntroGate> {
   }
 
   Future<void> _markSeen() async {
+    ensureFullJua();
     final p = await SharedPreferences.getInstance();
     await p.setBool('intro_seen', true);
   }
@@ -259,6 +263,18 @@ class BoardBackground {
   String? imageBase64;
   String? imageAsset;
 
+  Uint8List? _decoded;
+  String? _decodedFor;
+  Uint8List? get imageBytes {
+    final s = imageBase64;
+    if (s == null) return null;
+    if (_decodedFor != s) {
+      _decoded = base64Decode(s);
+      _decodedFor = s;
+    }
+    return _decoded;
+  }
+
   BoardBackground({
     this.type = BgType.solid,
     this.color1 = 0xFF0a0a0a,
@@ -300,6 +316,23 @@ class BoardCard {
   CardStyle style;
   int paperColor, textColor;
 
+  /// 사진 프레임: 0 폴라로이드+테이프, 1 폴라로이드+핀, 2 깔끔한 둥근 프레임
+  int frame;
+
+  // base64를 한 번만 풀어 같은 바이트 배열을 재사용한다. 화면이 갱신될 때마다 새로
+  // 풀면 Flutter가 매번 "다른 이미지"로 보고 다시 불러서 사진이 흰색으로만 보인다.
+  Uint8List? _decoded;
+  String? _decodedFor;
+  Uint8List? get imageBytes {
+    final s = imageBase64;
+    if (s == null) return null;
+    if (_decodedFor != s) {
+      _decoded = base64Decode(s);
+      _decodedFor = s;
+    }
+    return _decoded;
+  }
+
   BoardCard({
     this.imageUrl,
     this.imageBase64,
@@ -312,6 +345,7 @@ class BoardCard {
     this.style = CardStyle.torn,
     this.paperColor = 0xFFF5F0E8,
     this.textColor = 0xFF1a1a1a,
+    this.frame = 0,
   });
 
   double x(double w) => xRatio * w;
@@ -331,6 +365,7 @@ class BoardCard {
     'style': style.index,
     'paperColor': paperColor,
     'textColor': textColor,
+    'frame': frame,
   };
 
   factory BoardCard.fromJson(Map<String, dynamic> json) {
@@ -350,6 +385,7 @@ class BoardCard {
           : CardStyle.torn,
       paperColor: json['paperColor'] ?? 0xFFF5F0E8,
       textColor: json['textColor'] ?? 0xFF1a1a1a,
+      frame: json['frame'] ?? 0,
     );
   }
 }
@@ -1099,6 +1135,7 @@ class _ParticleOverlayState extends State<ParticleOverlay>
         n = 34;
         break;
     }
+    if (kLite) n = (n * .35).round();
     for (int i = 0; i < n; i++) {
       switch (ptype) {
         case PType.star:
@@ -1355,6 +1392,9 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   bool _animStarted = false;
   bool _isExporting = false;
   String _currentMood = 'manifestation';
+
+  // 두 손가락 제스처(이동·확대·회전) 시작 시점의 값
+  double _gW0 = 0, _gH0 = 0, _gRot0 = 0, _gCx0 = 0, _gCy0 = 0, _gDx = 0, _gDy = 0;
 
   // ★ DREAM OS 진단 (심리테스트) 상태
   bool _showQuiz = false;
@@ -1902,11 +1942,19 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     _floatController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
+    );
     _neonController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+    );
+    if (kLite) {
+      // 가벼운 모드: 계속 움직이는 효과를 멈추고 정지 상태로 둔다.
+      _floatController.value = .5;
+      _neonController.value = .6;
+    } else {
+      _floatController.repeat(reverse: true);
+      _neonController.repeat(reverse: true);
+    }
     _spotlightController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
@@ -1945,6 +1993,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   }
 
   void _updateFloatSpeed() {
+    if (kLite) return;
     final duration = Duration(
       milliseconds: (_floatSpeedSeconds * 1000).round(),
     );
@@ -2306,6 +2355,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   // ─────────────────────────────────────────────
 
   void _startQuiz() {
+    ensureFullJua();
     _selectCard(null);
     setState(() => _showQuiz = true);
   }
@@ -2638,33 +2688,128 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     return (intersection.width * intersection.height) > smallerArea * 0.25;
   }
 
-  Future<void> _pickImage() async {
+  /// 사진을 불러와 긴 변 1280px JPEG로 줄인다. 큰 사진을 그대로 저장하면 브라우저
+  /// 저장공간(약 5MB)을 넘겨 저장이 실패하고, 휴대폰에서는 메모리도 많이 먹는다.
+  /// 열 수 없는 형식이면 null.
+  Future<({String b64, double aspect})?> _prepPhoto(
+    Uint8List bytes, {
+    int maxSide = 1280,
+  }) async {
+    final url = html.Url.createObjectUrlFromBlob(html.Blob([bytes]));
+    try {
+      final img = html.ImageElement();
+      final done = Completer<bool>();
+      img.onLoad.first.then((_) {
+        if (!done.isCompleted) done.complete(true);
+      });
+      img.onError.first.then((_) {
+        if (!done.isCompleted) done.complete(false);
+      });
+      img.src = url;
+      final ok = await done.future.timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => false,
+      );
+      if (!ok) return null;
+      final w = img.naturalWidth, h = img.naturalHeight;
+      if (w == 0 || h == 0) return null;
+      final k = min(1.0, maxSide / max(w, h));
+      final cw = max(1, (w * k).round()), ch = max(1, (h * k).round());
+      final canvas = html.CanvasElement(width: cw, height: ch);
+      final ctx = canvas.context2D;
+      ctx.fillStyle = '#ffffff'; // 투명 PNG는 흰 바탕 위에 합성
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.drawImageScaled(img, 0, 0, cw, ch);
+      final dataUrl = canvas.toDataUrl('image/jpeg', 0.86);
+      final comma = dataUrl.indexOf(',');
+      if (comma < 0) return null;
+      return (b64: dataUrl.substring(comma + 1), aspect: w / h);
+    } catch (_) {
+      return null;
+    } finally {
+      html.Url.revokeObjectUrl(url);
+    }
+  }
+
+  void _toast(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: TextStyle(color: _theme.accent, fontFamily: 'Jua')),
+        duration: const Duration(seconds: 2),
+        backgroundColor: _theme.screenBorder,
+      ),
+    );
+  }
+
+  Future<({String b64, double aspect})?> _chooseAndPrepPhoto() async {
     final result = await FilePicker.pickFiles(
       type: FileType.image,
       allowMultiple: false,
       withData: true,
     );
-    if (result == null) return;
+    if (result == null) return null;
     final bytes = result.files.first.bytes;
-    if (bytes == null) return;
-    final base64Str = base64Encode(bytes);
+    if (bytes == null) return null;
+    final prep = await _prepPhoto(bytes);
+    if (prep == null) {
+      _toast(tr('이 사진은 열 수 없어요. JPG나 PNG로 시도해 주세요.', "Can't open this photo. Try a JPG or PNG."));
+    }
+    return prep;
+  }
+
+  /// 새 사진: 보드 가운데에 알맞은 크기의 프레임으로 넣는다.
+  Future<void> _pickImage() async {
+    final prep = await _chooseAndPrepPhoto();
+    if (prep == null || !mounted) return;
     final rng = Random();
+    final bw = _boardW > 0 ? _boardW : 600.0;
+    final bh = _boardH > 0 ? _boardH : 600.0;
+    final u = _unit(bw, bh);
+    final aspect = prep.aspect.clamp(.75, 1.35); // 너비 / 높이
+    final wPx = min(bw * .34, bh * .5 * aspect);
+    final hPx = wPx / aspect;
+    final cx = bw / 2 + (rng.nextDouble() - .5) * bw * .12;
+    final cy = bh / 2 + (rng.nextDouble() - .5) * bh * .1;
     int newIndex = 0;
     setState(() {
       cards.add(
         BoardCard(
-          imageBase64: base64Str,
-          xRatio: 0.05 + rng.nextDouble() * 0.1,
-          yRatio: 0.05 + rng.nextDouble() * 0.1,
-          widthRatio: 0.12 + rng.nextDouble() * 0.05,
-          heightRatio: 0.12 + rng.nextDouble() * 0.05,
-          rotation: (rng.nextDouble() - 0.5) * 0.3,
+          imageBase64: prep.b64,
+          xRatio: ((cx - wPx / 2) / bw).clamp(.02, .98 - wPx / bw),
+          yRatio: ((cy - (hPx + 24) / 2) / bh).clamp(.02, .98 - (hPx + 24) / bh),
+          widthRatio: wPx / u,
+          heightRatio: hPx / u,
+          rotation: (rng.nextDouble() - .5) * .2,
+          frame: rng.nextBool() ? 0 : 1,
         ),
       );
       _floatOffsets.add(rng.nextDouble() * pi * 2);
       newIndex = cards.length - 1;
     });
     _triggerSpawnAnimation(newIndex);
+    _saveBoard();
+  }
+
+  /// 샘플 프레임(또는 기존 사진)에 사진을 넣어 바꾼다. 프레임 크기는 유지하고 비율만 맞춘다.
+  Future<void> _replaceCardImage(int index) async {
+    if (index < 0 || index >= cards.length) return;
+    final prep = await _chooseAndPrepPhoto();
+    if (prep == null || !mounted || index >= cards.length) return;
+    final aspect = prep.aspect.clamp(.75, 1.35);
+    setState(() {
+      final c = cards[index];
+      c.imageBase64 = prep.b64;
+      c.imageUrl = null;
+      // 프레임 폭은 유지하고 사진 비율에 맞춰 높이를 조정
+      c.heightRatio = (c.widthRatio / aspect).clamp(0.03, 0.9);
+    });
+    _saveBoard();
+  }
+
+  void _cycleFrame(int index) {
+    if (index < 0 || index >= cards.length) return;
+    setState(() => cards[index].frame = (cards[index].frame + 1) % 3);
     _saveBoard();
   }
 
@@ -2734,8 +2879,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
       onPanUpdate: onPanUpdate,
       onPanEnd: onPanEnd,
       child: Container(
-        width: 28,
-        height: 28,
+        width: kLite ? 38 : 28,
+        height: kLite ? 38 : 28,
         decoration: BoxDecoration(
           color: bg,
           shape: BoxShape.circle,
@@ -2745,7 +2890,7 @@ class _VisionBoardPageState extends State<VisionBoardPage>
             BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 4),
           ],
         ),
-        child: Icon(icon, color: iconColor, size: 14),
+        child: Icon(icon, color: iconColor, size: kLite ? 19 : 14),
       ),
     );
   }
@@ -2765,10 +2910,13 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     final top = card.y(screenH);
     final right = left + card.width(u);
     final bottom = top + card.height(u) + 24;
+    final hh = kLite ? 19.0 : 14.0; // 핸들 반지름
+    final midX = (left + right) / 2;
+    final isPhoto = card.imageUrl != null || card.imageBase64 != null;
     return [
       Positioned(
-        left: right - 14,
-        top: top - 14,
+        left: right - hh,
+        top: top - hh,
         child: _handle(
           icon: Icons.close,
           bg: Colors.red.shade700,
@@ -2784,8 +2932,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         ),
       ),
       Positioned(
-        left: left - 14,
-        top: top - 14,
+        left: left - hh,
+        top: top - hh,
         child: _handle(
           icon: Icons.arrow_downward,
           bg: _theme.buttonBg,
@@ -2807,8 +2955,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         ),
       ),
       Positioned(
-        left: left + 18,
-        top: top - 14,
+        left: left + hh + 4,
+        top: top - hh,
         child: _handle(
           icon: Icons.arrow_upward,
           bg: _theme.buttonBg,
@@ -2830,8 +2978,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         ),
       ),
       Positioned(
-        left: right - 14,
-        top: bottom - 14,
+        left: right - hh,
+        top: bottom - hh,
         child: _handle(
           icon: Icons.open_in_full,
           bg: _theme.buttonBg,
@@ -2844,8 +2992,8 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         ),
       ),
       Positioned(
-        left: left - 14,
-        top: bottom - 14,
+        left: left - hh,
+        top: bottom - hh,
         child: _handle(
           icon: Icons.rotate_right,
           bg: _theme.buttonBg,
@@ -2855,6 +3003,31 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           onPanEnd: (_) => _saveBoard(),
         ),
       ),
+      // 가운데 위: 글귀 수정 / 사진 바꾸기
+      Positioned(
+        left: midX - hh,
+        top: top - hh,
+        child: _handle(
+          icon: isPhoto ? Icons.add_photo_alternate : Icons.edit,
+          bg: _theme.accent,
+          iconColor: _theme.deviceBg2,
+          onTap: () => isPhoto
+              ? _replaceCardImage(index)
+              : _showTextDialog(editIndex: index),
+        ),
+      ),
+      // 가운데 아래: 사진 프레임 바꾸기
+      if (isPhoto)
+        Positioned(
+          left: midX - hh,
+          top: bottom - hh,
+          child: _handle(
+            icon: Icons.filter_frames,
+            bg: _theme.buttonBg,
+            iconColor: _theme.textPrimary,
+            onTap: () => _cycleFrame(index),
+          ),
+        ),
     ];
   }
 
@@ -2862,8 +3035,9 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     if (background.type == BgType.image) {
       if (background.imageBase64 != null)
         return Image.memory(
-          base64Decode(background.imageBase64!),
+          background.imageBytes!,
           fit: BoxFit.cover,
+          gaplessPlayback: true,
         );
       if (background.imageAsset != null && _hasAsset(background.imageAsset))
         return Image.asset(
@@ -3525,34 +3699,38 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                                         editIndex: index,
                                                       );
                                                   },
-                                                  onPanStart: (_) => setState(
-                                                    () => draggingIndex = index,
-                                                  ),
-                                                  onPanUpdate: (d) {
+                                                  onScaleStart: (d) {
+                                                    _gW0 = card.width(unit);
+                                                    _gH0 = card.height(unit);
+                                                    _gRot0 = card.rotation;
+                                                    _gCx0 = card.x(screenW) + _gW0 / 2;
+                                                    _gCy0 = card.y(screenH) + (_gH0 + 24) / 2;
+                                                    _gDx = 0;
+                                                    _gDy = 0;
+                                                    setState(() => draggingIndex = index);
+                                                  },
+                                                  onScaleUpdate: (d) {
                                                     setState(() {
-                                                      card.xRatio =
-                                                          ((card.xRatio *
-                                                                          screenW +
-                                                                      d
-                                                                          .delta
-                                                                          .dx) /
-                                                                  screenW)
-                                                              .clamp(0.0, 1.0);
-                                                      card.yRatio =
-                                                          ((card.yRatio *
-                                                                          screenH +
-                                                                      d
-                                                                          .delta
-                                                                          .dy) /
-                                                                  screenH)
-                                                              .clamp(0.0, 1.0);
+                                                      _gDx += d.focalPointDelta.dx;
+                                                      _gDy += d.focalPointDelta.dy;
+                                                      var w = _gW0, h = _gH0;
+                                                      if (d.pointerCount >= 2) {
+                                                        // 두 손가락: 벌리면 확대, 모으면 축소, 비틀면 회전
+                                                        final k = d.scale.clamp(.3, 4.0);
+                                                        w = (_gW0 * k).clamp(unit * .06, unit * .9);
+                                                        h = (_gH0 * k).clamp(unit * .03, unit * .9);
+                                                        card.widthRatio = w / unit;
+                                                        card.heightRatio = h / unit;
+                                                        card.rotation = _gRot0 + d.rotation;
+                                                      }
+                                                      final cx = _gCx0 + _gDx;
+                                                      final cy = _gCy0 + _gDy;
+                                                      card.xRatio = ((cx - w / 2) / screenW).clamp(0.0, 1.0);
+                                                      card.yRatio = ((cy - (h + 24) / 2) / screenH).clamp(0.0, 1.0);
                                                     });
                                                   },
-                                                  onPanEnd: (_) {
-                                                    setState(
-                                                      () =>
-                                                          draggingIndex = null,
-                                                    );
+                                                  onScaleEnd: (_) {
+                                                    setState(() => draggingIndex = null);
                                                     _saveBoard();
                                                   },
                                                   child: Opacity(
@@ -3651,6 +3829,10 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                                                       card,
                                                                       pw,
                                                                       ph,
+                                                                      onFill: () =>
+                                                                          _replaceCardImage(
+                                                                            index,
+                                                                          ),
                                                                     )
                                                                   : _buildSpecialTextCard(
                                                                       text: card
@@ -4376,13 +4558,13 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           BoxShadow(
             color: Colors.black.withOpacity(0.45),
             offset: const Offset(0, -8),
-            blurRadius: 22,
+            blurRadius: kLite ? 10 : 22,
             spreadRadius: 0,
           ),
           BoxShadow(
             color: Colors.black.withOpacity(0.55),
             offset: const Offset(0, 40),
-            blurRadius: 80,
+            blurRadius: kLite ? 26 : 80,
           ),
           BoxShadow(color: Colors.white.withOpacity(0.05), spreadRadius: 1),
         ],
@@ -4487,9 +4669,58 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     ];
   }
 
-  Widget _buildPhotoCard(BoardCard card, double w, double h) {
-    // Claude Design 스타일: 무드 테마 cardFrame + 깊은 그림자
-    return Container(
+  Widget _buildPhotoCard(
+    BoardCard card,
+    double w,
+    double h, {
+    VoidCallback? onFill,
+  }) {
+    final bytes = card.imageBytes;
+    Widget photo;
+    if (bytes != null) {
+      photo = Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (context, e, st) => _placeholderTile(onTap: onFill),
+      );
+    } else if (!_hasAsset(card.imageUrl)) {
+      photo = _placeholderTile(onTap: onFill);
+    } else {
+      photo = Image.asset(
+        card.imageUrl!,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (context, error, stackTrace) =>
+            _placeholderTile(onTap: onFill),
+      );
+    }
+
+    // 프레임 2: 깔끔한 둥근 프레임 (캡션 없음)
+    if (card.frame == 2) {
+      return Container(
+        width: w,
+        height: h + 24,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(.85), width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: kLite ? 8 : 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(13),
+          child: photo,
+        ),
+      );
+    }
+
+    // 프레임 0/1: 폴라로이드 + 테이프 또는 핀
+    final polaroid = Container(
       width: w,
       height: h + 24,
       decoration: BoxDecoration(
@@ -4499,52 +4730,19 @@ class _VisionBoardPageState extends State<VisionBoardPage>
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.55),
-            blurRadius: 14,
+            blurRadius: kLite ? 8 : 14,
             offset: const Offset(3, 6),
-          ),
-          BoxShadow(
-            color: _theme.accent.withOpacity(0.12),
-            blurRadius: 20,
-            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         children: [
-          // 이미지 영역
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(1),
-              child: card.imageBase64 != null
-                  ? Image.memory(
-                      base64Decode(card.imageBase64!),
-                      fit: BoxFit.cover,
-                      gaplessPlayback: true,
-                    )
-                  : !_hasAsset(card.imageUrl)
-                  ? _placeholderTile()
-                  : Image.asset(
-                      card.imageUrl!,
-                      fit: BoxFit.cover,
-                      gaplessPlayback: true,
-                      // 에셋이 없는 환경(공유 링크로 열람 등)에서는
-                      // Claude Design 스타일 그라디언트 타일로 대체
-                      errorBuilder: (context, error, stackTrace) =>
-                          _placeholderTile(),
-                      frameBuilder:
-                          (context, child, frame, wasSynchronouslyLoaded) {
-                            if (wasSynchronouslyLoaded || frame != null)
-                              return child;
-                            return AnimatedOpacity(
-                              opacity: frame == null ? 0.0 : 1.0,
-                              duration: const Duration(milliseconds: 300),
-                              child: child,
-                            );
-                          },
-                    ),
+              child: SizedBox(width: double.infinity, child: photo),
             ),
           ),
-          // Claude Design 스타일 캡션 바
           Container(
             height: 22,
             color: _theme.cardFrame,
@@ -4554,25 +4752,62 @@ class _VisionBoardPageState extends State<VisionBoardPage>
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
-              _moodCaption(card.imageUrl),
-              softWrap: false,
-              style: TextStyle(
-                color: _theme.accentDim,
-                fontSize: 7,
-                fontFamily: 'SpaceMono',
-                letterSpacing: 1.5,
+                _moodCaption(card.imageUrl),
+                softWrap: false,
+                style: TextStyle(
+                  color: _theme.accentDim,
+                  fontSize: 7,
+                  fontFamily: 'SpaceMono',
+                  letterSpacing: 1.5,
+                ),
               ),
-            ),
             ),
           ),
         ],
       ),
     );
+    final deco = card.frame == 1
+        ? Positioned(
+            top: -7,
+            left: w / 2 - 7,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  center: const Alignment(-.3, -.3),
+                  colors: [Colors.white, _theme.accent],
+                ),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x80000000), blurRadius: 3, offset: Offset(0, 2)),
+                ],
+              ),
+            ),
+          )
+        : Positioned(
+            top: -9,
+            left: w / 2 - 30,
+            child: Transform.rotate(
+              angle: -.08,
+              child: Container(
+                width: 60,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(.55),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x33000000), blurRadius: 2, offset: Offset(0, 1)),
+                  ],
+                ),
+              ),
+            ),
+          );
+    return Stack(clipBehavior: Clip.none, children: [polaroid, deco]);
   }
 
   // ★ 에셋 없는 환경용 플레이스홀더 타일 (Claude Design HTML의 cardTile 스타일)
-  Widget _placeholderTile() {
-    return Container(
+  Widget _placeholderTile({VoidCallback? onTap}) {
+    final tile = Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -4580,9 +4815,46 @@ class _VisionBoardPageState extends State<VisionBoardPage>
           colors: [_theme.accentDim, _theme.accent.withOpacity(0.55)],
         ),
       ),
-      child: CustomPaint(
-        painter: _StripeTilePainter(color: Colors.black.withOpacity(0.10)),
-        size: Size.infinite,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _StripeTilePainter(color: Colors.black.withOpacity(0.10)),
+            ),
+          ),
+          if (onTap != null)
+            Center(
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final side = (min(c.maxWidth, c.maxHeight) * .34).clamp(22.0, 56.0);
+                  return Container(
+                    width: side,
+                    height: side,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black.withOpacity(.28),
+                      border: Border.all(color: Colors.white.withOpacity(.6)),
+                    ),
+                    child: Icon(
+                      Icons.add_photo_alternate_outlined,
+                      color: Colors.white.withOpacity(.9),
+                      size: side * .56,
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+    if (onTap == null) return tile;
+    return Semantics(
+      button: true,
+      label: tr('사진 넣기', 'Add a photo'),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: tile,
       ),
     );
   }
@@ -4962,11 +5234,13 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                       );
                       if (result != null) {
                         final bytes = result.files.first.bytes;
-                        if (bytes != null)
+                        if (bytes != null) {
+                          final prep = await _prepPhoto(bytes, maxSide: 1600);
                           setDialogState(() {
                             selectedType = BgType.image;
-                            selectedImageBase64 = base64Encode(bytes);
+                            selectedImageBase64 = prep?.b64 ?? base64Encode(bytes);
                           });
+                        }
                       }
                     },
                     child: Container(
