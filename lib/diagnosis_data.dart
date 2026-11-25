@@ -35,8 +35,8 @@ const diagMoods = <String, DiagMood>{
     emoji: '✨',
     titleKo: '끌어당김',
     titleEn: 'MANIFESTATION',
-    descKo: '큰 꿈을 말하면 현실이 따라와요.\n입 밖으로 꺼낸 순간 이미 시작된 사람.',
-    descEn: 'Big dreams, louder reality.\nYou speak things into existence.',
+    descKo: '원하는 걸 먼저 크게 말하는 사람.\n선언한 순간, 이미 이루기 시작했어요.',
+    descEn: 'You say what you want out loud, first.\nThe moment you declare it, it has begun.',
     kwKo: ['#끌어당김', '#주인공', '#스포트라이트'],
     kwEn: ['#manifest', '#maincharacter', '#spotlight'],
     costume: 'manifestation',
@@ -45,8 +45,8 @@ const diagMoods = <String, DiagMood>{
     emoji: '🌿',
     titleKo: '소프트 라이프',
     titleEn: 'SOFT LIFE',
-    descKo: '평온이 가장 큰 사치예요.\n나만의 속도로 피어나는 사람.',
-    descEn: 'Peace is your luxury.\nYou bloom at your own pace.',
+    descKo: '이루고 싶은 건 "여유로운 삶" 그 자체예요.\n나만의 속도로 피어나는 사람.',
+    descEn: 'What you want most is an unhurried life itself.\nYou bloom at your own pace.',
     kwKo: ['#여유', '#휴식', '#햇살'],
     kwEn: ['#slow', '#rest', '#sunlight'],
     costume: 'soft_life',
@@ -55,8 +55,8 @@ const diagMoods = <String, DiagMood>{
     emoji: '💪',
     titleKo: '갓생러',
     titleEn: 'THAT GIRL',
-    descKo: '꾸준함이 당신의 사랑의 언어예요.\n매일 한 칸씩 쌓아가는 사람.',
-    descEn: 'Discipline is your love language.\nYou show up, every single day.',
+    descKo: '목표를 매일의 한 칸으로 쪼개는 사람.\n꾸준함으로 결국 이뤄내요.',
+    descEn: 'You slice every goal into daily steps.\nYou get there by showing up, every day.',
     kwKo: ['#루틴', '#자기관리', '#새벽'],
     kwEn: ['#routine', '#discipline', '#5am'],
     costume: 'that_girl',
@@ -65,8 +65,8 @@ const diagMoods = <String, DiagMood>{
     emoji: '🌀',
     titleKo: '사이버 드림',
     titleEn: 'CYBER DREAM',
-    descKo: '막힌 곳은 해킹하고, 없는 건 직접 만드는 사람.\n10년 뒤의 시스템을 미리 살고 있어요.',
-    descEn: "You hack what's locked and build what's missing.\nYou already live in the system of ten years from now.",
+    descKo: '없는 건 직접 만들어서 이루는 사람.\n10년 뒤의 세상을 먼저 짓고 있어요.',
+    descEn: "You build what's missing to get what you want.\nYou're already constructing the world of ten years from now.",
     kwKo: ['#해킹', '#시스템', '#미래'],
     kwEn: ['#hack', '#system', '#future'],
     costume: 'cyber_dream',
@@ -75,8 +75,8 @@ const diagMoods = <String, DiagMood>{
     emoji: '🌍',
     titleKo: '노마드',
     titleEn: 'WANDERLUST',
-    descKo: '집은 계속 움직이는 목적지예요.\n수평선이 부르는 사람.',
-    descEn: 'Home is a moving target.\nThe horizon keeps calling you.',
+    descKo: '이루고 싶은 건 닿아 보는 경험들이에요.\n수평선이 부르는 사람.',
+    descEn: 'What you want most are places to reach and experiences to have.\nThe horizon keeps calling you.',
     kwKo: ['#여행', '#지도', '#수평선'],
     kwEn: ['#travel', '#maps', '#horizon'],
     costume: 'wanderlust',
@@ -96,33 +96,34 @@ class DiagRound {
   String get question => tr(qKo, qEn);
 }
 
-/// 3라운드 × 6장 중 2장. 라운드마다 5개 무드가 하나씩 + 보너스 1장.
-/// 카드는 모두 "꿈"에 관한 자연스러운 장면이고, 어떤 무드인지는 드러나지 않게 쓴다
-/// (이모지·키워드로 결과가 짐작되지 않도록 카드에는 아이콘을 두지 않는다).
+/// 3라운드 × 6장 중 2장. 비전보드를 만들 때 실제로 하게 되는 고민의 순서를 따른다:
+///   1) 무엇을 이루고 싶은가  2) 어떻게 이뤄갈 것인가  3) 이루고 나면 무엇을 느끼고 싶은가
+/// 라운드마다 5개 무드가 하나씩 + 보너스 1장. 어떤 무드인지는 카드에서 드러나지 않게 쓰고,
+/// 이모지·키워드로 결과가 짐작되지 않도록 카드에는 아이콘을 두지 않는다.
 const diagRounds = <DiagRound>[
-  DiagRound('꿈에서 깨어나기 직전, 가장 선명하게 남은 장면은?', 'Right before waking from a dream, which scene stayed clearest?', [
-    DiagCard('manifestation', '', '수많은 박수 속에서 내 이름이 불리던 순간', 'My name being called out amid huge applause'),
-    DiagCard('soft_life', '', '일출을 바라보며 따뜻한 커피를 마시던 아침', 'Sipping warm coffee while watching the sunrise'),
-    DiagCard('that_girl', '', '새벽 공기를 가르며 달리다 결승선을 넘던 순간', 'Crossing the finish line after running through the dawn air'),
-    DiagCard('cyber_dream', '', '빛나는 밤하늘 도시 위를 날아다니던 장면', 'Flying over a glowing city under the night sky'),
-    DiagCard('wanderlust', '', '지도 없이 낯선 도시의 골목을 걷던 장면', 'Wandering the alleys of a strange city without a map'),
-    DiagCard('cyber_dream', '', '우주선 창밖으로 지구가 작아지던 장면', 'Watching Earth shrink in the window of a spaceship'),
+  DiagRound('1년 뒤, 내 보드에서 가장 이뤄져 있었으면 하는 건?', 'One year from now, what do you most want to see achieved on your board?', [
+    DiagCard('manifestation', '', '내 이름이 걸린 무언가로 많은 사람 앞에 서는 것', 'Standing before a crowd with something that carries my name'),
+    DiagCard('soft_life', '', '쫓기지 않고 내 하루를 내가 정하며 사는 것', 'Living unhurried, with my days decided by me'),
+    DiagCard('that_girl', '', '건강한 몸과 흔들리지 않는 루틴을 갖는 것', 'Having a healthy body and a routine that never wobbles'),
+    DiagCard('cyber_dream', '', '내가 만든 서비스가 실제 세상에서 돌아가는 것', 'Seeing something I built running out in the real world'),
+    DiagCard('wanderlust', '', '낯선 나라에서 몇 달쯤 살아보는 것', 'Living for a few months in a country I have never been to'),
+    DiagCard('cyber_dream', '', '내 아이디어 하나로 새로운 분야를 여는 것', 'Opening up a brand-new field with one idea of mine'),
   ]),
-  DiagRound('그 꿈을 향해 가는 나는, 어떤 모습일까?', 'On the way to that dream, what am I like?', [
-    DiagCard('manifestation', '', '이미 이룬 사람처럼 당당하게 말하고 다녀', 'I talk with confidence, as if it were already mine'),
-    DiagCard('soft_life', '', '서두르지 않고 하루하루 나답게 쌓아가', 'No rush — I build it day by day, my own way'),
-    DiagCard('that_girl', '', '정해둔 만큼은 매일, 하루도 빼먹지 않고 해내', 'I do my set amount every day without skipping one'),
-    DiagCard('cyber_dream', '', '아무도 안 해본 방식으로 새롭게 만들어봐', 'I try it a way nobody has, and make something new'),
-    DiagCard('wanderlust', '', '한곳에 머물지 않고 여기저기서 영감을 모아', "I never stay in one place; I gather inspiration everywhere"),
-    DiagCard('soft_life', '', '좋아하는 것들에 둘러싸여 천천히 가고 싶어', 'I want to go slowly, surrounded by the things I love'),
+  DiagRound('그걸 이루기 위해, 이번 주에 실제로 할 수 있는 일은?', 'To make it happen, what can you actually do this week?', [
+    DiagCard('manifestation', '', '목표를 주변에 선언해서 더는 물러서지 못하게 만든다', 'Announce the goal to everyone so there is no backing out'),
+    DiagCard('soft_life', '', '무리 없는 작은 일 하나부터, 오늘 바로 시작한다', 'Start today with one small thing that costs me no stress'),
+    DiagCard('that_girl', '', '계획표를 짜고 체크리스트를 하나씩 지워 나간다', 'Make a plan and cross off a checklist item by item'),
+    DiagCard('cyber_dream', '', '필요한 도구부터 직접 만들어서 자동화해 둔다', 'Build the tools I need first and automate the rest'),
+    DiagCard('wanderlust', '', '이미 해본 사람들을 찾아가 이야기를 듣고 영감을 모은다', 'Seek out people who have done it and collect their stories'),
+    DiagCard('soft_life', '', '내가 정말 원하는 게 맞는지부터 차분히 정리해 본다', 'Slowly sort out whether this is truly what I want'),
   ]),
-  DiagRound('꿈이 이뤄진 날, 나는 어디서 눈을 뜰까?', 'On the day your dream comes true, where do you wake up?', [
-    DiagCard('manifestation', '', '통유리창 너머로 도시가 내려다보이는 높은 집', 'A high apartment overlooking the city through floor-to-ceiling glass'),
-    DiagCard('soft_life', '', '햇살 가득한 창가, 갓 구운 빵 냄새가 나는 집', 'A sunlit window and the smell of freshly baked bread'),
-    DiagCard('that_girl', '', '깔끔하게 정돈된 방, 이미 하루 계획이 끝난 아침', 'A tidy room, and a morning where the day is already planned'),
-    DiagCard('cyber_dream', '', '벽 전체가 화면이 되어 세상과 이어지는 집', 'A home whose whole wall is a screen linked to the world'),
-    DiagCard('wanderlust', '', '바다가 보이는 낯선 나라의 작은 방', 'A small room in a foreign country with a view of the sea'),
-    DiagCard('that_girl', '', '해야 할 일을 모두 끝내고 맞이한 느긋한 아침', 'A relaxed morning after finishing everything on the list'),
+  DiagRound('그게 이뤄진 날, 가장 크게 느끼고 싶은 건?', 'On the day it comes true, what do you want to feel most?', [
+    DiagCard('manifestation', '', '"봐, 말한 대로 됐지?" 하는 짜릿한 확신', 'A thrilling certainty: "See? Just like I said."'),
+    DiagCard('soft_life', '', '이제 서두르지 않아도 된다는 편안한 안도감', 'A quiet relief that I no longer have to rush'),
+    DiagCard('that_girl', '', '쌓아 온 노력이 결과가 됐다는 뿌듯함', 'The pride of seeing long effort turn into a result'),
+    DiagCard('cyber_dream', '', '아무도 가보지 않은 곳까지 와버렸다는 설렘', 'The thrill of having gone somewhere nobody has been'),
+    DiagCard('wanderlust', '', '어디서든 살아갈 수 있다는 가벼운 자유', 'The light freedom of knowing I can live anywhere'),
+    DiagCard('that_girl', '', '나와 한 약속을 끝까지 지켜냈다는 자부심', 'The self-respect of keeping a promise I made to myself'),
   ]),
 ];
 

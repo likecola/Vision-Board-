@@ -736,7 +736,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen>
           _mascot(8),
           const SizedBox(height: 18),
           Text(
-            tr('꿈 패턴 분석 중', 'ANALYZING PATTERN') + dots,
+            tr('내 비전 분석 중', 'ANALYZING PATTERN') + dots,
             style: _jua(20, p.text),
           ),
           const SizedBox(height: 6),
