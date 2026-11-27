@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'build_info.dart';
+import 'countdown.dart';
 import 'fonts.dart';
 import 'web_synth.dart';
 
@@ -984,8 +985,42 @@ class _IntroOverlayState extends State<IntroOverlay>
               style: _jua(_portrait ? 13 : 15, const Color(0xFF8E78B8)),
             ),
           ),
+          const SizedBox(height: 18),
+          _countdownBadge(),
         ],
       ),
+    );
+  }
+
+  /// "2027년까지 D-34 01:41:33" — 인트로 공용 카운트다운.
+  Widget _countdownBadge({bool inline = false}) {
+    if (inline) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('2027년까지', style: _jua(_portrait ? 13 : 15, const Color(0xFF8E78B8))),
+          const SizedBox(width: 10),
+          NewYearCountdown(
+            color: _kPink,
+            fontSize: _portrait ? 15 : 20,
+            bold: true,
+            letterSpacing: 1,
+          ),
+        ],
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('2027년까지', style: _jua(_portrait ? 13 : 15, const Color(0xFF8E78B8))),
+        const SizedBox(height: 4),
+        NewYearCountdown(
+          color: _kPink,
+          fontSize: _portrait ? 20 : 26,
+          bold: true,
+          letterSpacing: 2,
+        ),
+      ],
     );
   }
 
@@ -1200,9 +1235,9 @@ class _IntroOverlayState extends State<IntroOverlay>
               children: [
                 Transform.translate(
                   offset: Offset(0, bob),
-                  child: Mascot(px: _portrait ? 6 : 7, closed: _eyesClosed(t)),
+                  child: Mascot(px: _portrait ? 5 : 7, closed: _eyesClosed(t)),
                 ),
-                SizedBox(width: _portrait ? 0 : 18, height: _portrait ? 10 : 0),
+                SizedBox(width: _portrait ? 0 : 18, height: _portrait ? 6 : 0),
                 _Pop(
                   delay: const Duration(milliseconds: 150),
                   duration: const Duration(milliseconds: 450),
@@ -1233,7 +1268,7 @@ class _IntroOverlayState extends State<IntroOverlay>
                             text: '스텔라',
                             style: TextStyle(color: Color(0xFFC2187A)),
                           ),
-                          TextSpan(text: ' ✦\n너의 꿈을 진단해볼까?'),
+                          TextSpan(text: ' ✦\n2027년 비전보드,\n나와 함께 만들어볼래?'),
                         ],
                       ),
                     ),
@@ -1241,12 +1276,14 @@ class _IntroOverlayState extends State<IntroOverlay>
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
+            _countdownBadge(inline: true),
+            const SizedBox(height: 10),
             _Pop(
               delay: const Duration(milliseconds: 300),
               duration: const Duration(milliseconds: 450),
               child: _Pressable(
-                label: 'A 진단 시작',
+                label: 'A 좋아, 시작',
                 onTap: done ? null : _pressA,
                 builder: (pressed) => Container(
                   transform: Matrix4.translationValues(0, pressed ? 4 : 0, 0),
@@ -1284,7 +1321,7 @@ class _IntroOverlayState extends State<IntroOverlay>
                         child: Text('A', style: _ps(10, _kPink)),
                       ),
                       const SizedBox(width: 10),
-                      Text('진단 시작', style: _jua(19, const Color(0xFF1D1138))),
+                      Text('좋아, 시작!', style: _jua(19, const Color(0xFF1D1138))),
                     ],
                   ),
                 ),

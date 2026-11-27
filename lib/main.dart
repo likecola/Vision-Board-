@@ -12,6 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'countdown.dart';
 import 'diagnosis.dart';
 import 'build_info.dart';
 import 'diagnosis_data.dart';
@@ -567,58 +568,6 @@ class BackgroundPainter extends CustomPainter {
 }
 
 // ★ 3D 버튼 위젯
-/// 2027년 1월 1일 0시(기기 현지 시간)까지 D-day + 시:분:초 카운트다운.
-class NewYearCountdown extends StatefulWidget {
-  const NewYearCountdown({super.key, required this.color});
-  final Color color;
-
-  static final DateTime target = DateTime(2027, 1, 1);
-
-  @override
-  State<NewYearCountdown> createState() => _NewYearCountdownState();
-}
-
-class _NewYearCountdownState extends State<NewYearCountdown> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  String _two(int n) => n.toString().padLeft(2, '0');
-
-  @override
-  Widget build(BuildContext context) {
-    final left = NewYearCountdown.target.difference(DateTime.now());
-    final String text;
-    if (left.isNegative) {
-      text = tr('🎉 2027 시작!', '🎉 2027 IS HERE');
-    } else {
-      final h = left.inHours % 24, m = left.inMinutes % 60, s = left.inSeconds % 60;
-      text = 'D-${left.inDays}  ${_two(h)}:${_two(m)}:${_two(s)}';
-    }
-    return Text(
-      text,
-      style: TextStyle(
-        color: widget.color,
-        fontSize: 10,
-        fontFamily: 'SpaceMono',
-        letterSpacing: 1,
-      ),
-    );
-  }
-}
-
 class GameButton3D extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
