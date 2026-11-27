@@ -5002,6 +5002,94 @@ class _VisionBoardPageState extends State<VisionBoardPage>
     ],
   };
 
+  // ── 글귀 추천 (영어 위주 + 한국어) ──
+  static const Map<String, Map<String, List<String>>> _suggestionSets = {
+    'common': {
+      'en': [
+        '2027 is my year',
+        'Make it happen',
+        'Slow progress is still progress',
+        'Trust the timing',
+        'Do it scared',
+        'Become who I am meant to be',
+        'Future me says thank you',
+        'Dream it. Plan it. Do it.',
+      ],
+      'ko': [
+        '2027, 내 해가 온다',
+        '해내고 말 거야',
+        '느려도 괜찮아, 가고 있으니까',
+        '타이밍을 믿어',
+        '미래의 내가 고마워할 거야',
+        '꿈꾸고, 계획하고, 해내기',
+      ],
+    },
+    'manifestation': {
+      'en': [
+        "It's already mine",
+        'I attract what I am',
+        'Main character era',
+        'Say it. Believe it. Receive it.',
+        'Big things are coming',
+        'Claim it',
+      ],
+      'ko': ['이미 내 것이야', '말하는 대로 이뤄진다', '올해의 주인공은 나', '큰일이 오고 있어', '나는 끌어당긴다'],
+    },
+    'soft_life': {
+      'en': [
+        'Soft life, slow mornings',
+        'Peace over everything',
+        'Rest is productive',
+        'Choose calm',
+        'Bloom at my own pace',
+        'Less rush, more joy',
+      ],
+      'ko': ['천천히, 나답게', '평온이 최고의 사치', '쉬는 것도 성장이야', '여유롭게 피어나는 중', '오늘도 충분해'],
+    },
+    'that_girl': {
+      'en': [
+        'Discipline is self-love',
+        '1% better every day',
+        'Show up for myself',
+        'Consistency over motivation',
+        'Small habits, big change',
+        'Wake up. Work out. Glow up.',
+      ],
+      'ko': ['꾸준함이 실력이다', '매일 1%씩 성장', '나와의 약속 지키기', '작은 습관, 큰 변화', '갓생 살기 시작'],
+    },
+    'cyber_dream': {
+      'en': [
+        'Build the future',
+        'Make it weird. Make it mine.',
+        'Dream in neon',
+        'Create something new',
+        'Ideas become reality',
+        'Imagination is my superpower',
+      ],
+      'ko': ['상상을 현실로', '나만의 길을 만든다', '미래를 짓는 중', '아이디어는 힘이다', '새로운 걸 만들자'],
+    },
+    'wanderlust': {
+      'en': [
+        'Collect moments, not things',
+        'Say yes to the unknown',
+        'Adventure awaits',
+        'Not all who wander are lost',
+        'Pack light, dream big',
+        'Passport ready',
+      ],
+      'ko': ['낯선 곳에서 나를 만나기', '떠날 용기', '여권 준비 완료', '더 넓은 세상으로', '일단 떠나보자'],
+    },
+  };
+
+  /// 현재 무드 + 공통 추천 중 [lang]('en'|'ko') 문구를 섞어 [n]개 뽑는다.
+  List<String> _pickSuggestions(String lang, {int n = 6}) {
+    final pool = <String>[
+      ...?_suggestionSets[_currentMood]?[lang],
+      ...?_suggestionSets['common']?[lang],
+    ]..shuffle(Random());
+    return pool.take(n).toList();
+  }
+
   String _moodCaption(String? imageUrl) {
     if (imageUrl == null) return '';
     final set = _captionSets[_currentMood] ?? _captionSets['manifestation']!;
@@ -5010,12 +5098,16 @@ class _VisionBoardPageState extends State<VisionBoardPage>
   }
 
   void _showTextDialog({int? editIndex}) {
+    ensureFullJua(); // 추천 문구·입력에 쓰이는 한글 글자 보장
     final isEdit = editIndex != null;
     final card = isEdit ? cards[editIndex] : null;
     final controller = TextEditingController(text: card?.text ?? '');
     CardStyle selectedStyle = card?.style ?? CardStyle.torn;
     Color selectedPaperColor = Color(card?.paperColor ?? 0xFFF5F0E8);
     Color selectedTextColor = Color(card?.textColor ?? 0xFF1a1a1a);
+    // 추천 문구: 영어 기본, 한국어 전환 가능
+    String sugLang = 'en';
+    List<String> sugShown = _pickSuggestions(sugLang);
 
     showDialog(
       context: context,
@@ -5065,6 +5157,115 @@ class _VisionBoardPageState extends State<VisionBoardPage>
                                 borderSide: BorderSide(color: _theme.accent),
                               ),
                             ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Text(
+                                tr('추천 문구', 'SUGGESTIONS'),
+                                style: TextStyle(
+                                  color: _theme.textSecondary,
+                                  fontSize: 11,
+                                  fontFamily: 'Jua',
+                                ),
+                              ),
+                              const Spacer(),
+                              for (final l in const ['en', 'ko']) ...[
+                                GestureDetector(
+                                  onTap: () => setDialogState(() {
+                                    sugLang = l;
+                                    sugShown = _pickSuggestions(l);
+                                  }),
+                                  child: Container(
+                                    margin: const EdgeInsets.only(left: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 9,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: sugLang == l
+                                          ? _theme.accent
+                                          : Colors.transparent,
+                                      border: Border.all(
+                                        color: sugLang == l
+                                            ? _theme.accent
+                                            : _theme.buttonBorder,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      l == 'en' ? 'EN' : '한국어',
+                                      style: TextStyle(
+                                        color: sugLang == l
+                                            ? _theme.deviceBg
+                                            : _theme.textPrimary,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(width: 4),
+                              IconButton(
+                                tooltip: tr('다른 추천', 'Shuffle'),
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                  minWidth: 30,
+                                  minHeight: 30,
+                                ),
+                                icon: Icon(
+                                  Icons.casino_outlined,
+                                  size: 18,
+                                  color: _theme.accent,
+                                ),
+                                onPressed: () => setDialogState(
+                                  () => sugShown = _pickSuggestions(sugLang),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final sug in sugShown)
+                                GestureDetector(
+                                  onTap: () => setDialogState(() {
+                                    controller.text = sug;
+                                    controller.selection =
+                                        TextSelection.collapsed(
+                                          offset: sug.length,
+                                        );
+                                  }),
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 260,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _theme.accent.withOpacity(0.12),
+                                      border: Border.all(
+                                        color: _theme.accent.withOpacity(0.5),
+                                      ),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Text(
+                                      sug,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: _theme.textPrimary,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 12),
                           Text(
