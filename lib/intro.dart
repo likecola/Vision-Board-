@@ -985,8 +985,6 @@ class _IntroOverlayState extends State<IntroOverlay>
               style: _jua(_portrait ? 13 : 15, const Color(0xFF8E78B8)),
             ),
           ),
-          const SizedBox(height: 18),
-          _countdownBadge(),
         ],
       ),
     );
@@ -998,12 +996,11 @@ class _IntroOverlayState extends State<IntroOverlay>
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('2027년까지', style: _jua(_portrait ? 13 : 15, const Color(0xFF8E78B8))),
-          const SizedBox(width: 10),
+          Text('2027년까지', style: _jua(11, const Color(0xFF8E78B8))),
+          const SizedBox(width: 8),
           NewYearCountdown(
-            color: _kPink,
-            fontSize: _portrait ? 15 : 20,
-            bold: true,
+            color: const Color(0xFFB58FD8),
+            fontSize: 11,
             letterSpacing: 1,
           ),
         ],
@@ -1276,9 +1273,7 @@ class _IntroOverlayState extends State<IntroOverlay>
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            _countdownBadge(inline: true),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             _Pop(
               delay: const Duration(milliseconds: 300),
               duration: const Duration(milliseconds: 450),
@@ -1327,6 +1322,8 @@ class _IntroOverlayState extends State<IntroOverlay>
                 ),
               ),
             ),
+            const SizedBox(height: 14),
+            _countdownBadge(inline: true),
           ],
         ),
       ),

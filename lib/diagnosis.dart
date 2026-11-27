@@ -252,12 +252,29 @@ class _DiagnosisScreenState extends State<DiagnosisScreen>
     });
   }
 
-  static const _reactions = <(String, String)>[
-    ('오, 이거야?', 'Oh, this one?'),
-    ('좋은 선택!', 'Nice pick!'),
-    ('나도 이거 좋아해 ✦', 'I like this one too ✦'),
-    ('음~ 그렇구나', 'Hmm, I see~'),
-    ('느낌 와!', 'I can feel it!'),
+  // 라운드별 반응 — 질문 성격에 맞춰 다르게 (2번째 질문은 "벗어나고 싶은 것").
+  static const _reactionsByRound = <List<(String, String)>>[
+    [
+      ('오, 이거야?', 'Oh, this one?'),
+      ('좋은 선택!', 'Nice pick!'),
+      ('멋진 목표인데?', 'Now that is a goal!'),
+      ('느낌 와!', 'I can feel it!'),
+      ('보드에 꼭 붙여야겠다 ✦', 'This one needs a spot on the board ✦'),
+    ],
+    [
+      ('아, 그거 진짜 답답하지', 'Ugh, that one really weighs on you'),
+      ('이제 벗어날 때도 됐지', 'Time to leave that behind'),
+      ('그럴 만해, 충분히', 'Totally understandable'),
+      ('그건 이제 놓아줘도 돼 ✦', 'You can let that go now ✦'),
+      ('음~ 그렇구나', 'Hmm, I see~'),
+    ],
+    [
+      ('오, 그런 한 해 좋다!', 'Ooh, I like the sound of that year!'),
+      ('상상만 해도 설렌다', 'Gives me goosebumps just thinking of it'),
+      ('그 한 해, 응원할게 ✦', "I'm rooting for that year ✦"),
+      ('느낌 와!', 'I can feel it!'),
+      ('꼭 이뤄지길!', 'Hope it all comes true!'),
+    ],
   ];
 
   void _toggle(int i) {
@@ -282,7 +299,8 @@ class _DiagnosisScreenState extends State<DiagnosisScreen>
             _round == 2 ? "That's enough! Press A for your result!" : "That's enough! Press A to continue!",
           );
         } else {
-          final r = _reactions[_rng.nextInt(_reactions.length)];
+          final rs = _reactionsByRound[_round.clamp(0, 2)];
+          final r = rs[_rng.nextInt(rs.length)];
           _say(r.$1, r.$2);
         }
       } else {
@@ -298,7 +316,10 @@ class _DiagnosisScreenState extends State<DiagnosisScreen>
       setState(() {
         _round++;
         _cursor = 0;
-        _say('좋아! 다음 질문이야.', 'Great! Next question.');
+        _say(
+          _round == 1 ? '이번엔 벗어나고 싶은 걸 골라봐!' : '마지막! 1년 뒤의 나를 골라봐!',
+          _round == 1 ? 'Now pick what you want to leave behind!' : 'Last one! Pick your life a year from now!',
+        );
       });
     } else {
       _analyze();
